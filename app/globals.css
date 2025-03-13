@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+/*
+would tying variants to a single class with a media query work with tailwind? primary for
+dark-primary and light-primary etc.
+*/
+
+@theme {
+  --color-dark-text: #eeeff2;
+  --color-dark-primary: #b8bac7;
+  --color-dark-secondary: #5a4b62;
+  --color-dark-accent: #a289a4;
+  --color-dark-primary-darkened: rgba(184, 186, 199, 0.2);
+  --color-dark-secondary-darkened: rgba(90, 75, 98, 0.2);
+  --color-dark-splitter: rgba(184, 186, 199, 0.5);
+  --color-dark-background: #0b0b0e;
+  --color-dark-wallet-gradient: rgba(162, 137, 164, 0.5);
+  --color-light-text: #0d0e11;
+  --color-light-primary: #383a47;
+  --color-light-secondary: #ac9db4;
+  --color-light-accent: #745b76;
+  --color-light-primary-lightened: rgba(56, 58, 71, 0.2);
+  --color-light-secondary-lightened: rgba(172, 157, 180, 0.2);
+  --color-light-splitter: rgba(56, 58, 71, 0.5);
+  --color-light-background: #f1f1f4;
+  --color-light-wallet-gradient: rgba(116, 91, 118, 0.5);
+}
