@@ -6,12 +6,12 @@ export default function Post() {
       <div>
         <div>
           <div className="flex items-center gap-4">
-            <div className="rounded-full w-12 h-12 dark:bg-dark-splitter bg-light-splitter"></div>
+            <div className="rounded-full w-12 h-12 bg-theme-splitter"></div>
             <div>
               <p>Lorem Ipsum</p>
               <p>@loremipsum</p>
             </div>
-            <UserPlus className="rounded-full p-1 bg-dark-accent" size={28} />
+            <UserPlus className="rounded-full p-1 bg-theme-accent" size={28} />
           </div>
         </div>
       </div>
@@ -22,20 +22,20 @@ export default function Post() {
           repellendus?
         </p>
       </div>
-      <div className="w-full h-24 bg-dark-splitter rounded-md"></div>
-      <div className="flex gap-4 text-dark-accent">
+      <div className="w-full h-24 bg-theme-splitter rounded-md"></div>
+      <div className="flex gap-4 text-theme-accent">
         <div className="flex items-center gap-0.5 h-8">
           <ArrowBigUp
-            className="rounded-l-full p-1 bg-dark-primary-muted h-full"
+            className="rounded-l-full p-1 bg-theme-primary-muted h-full"
             size={28}
           />
-          <div className="p-1 px-2 bg-dark-primary-muted h-full">7</div>
+          <div className="p-1 px-2 bg-theme-primary-muted h-full">7</div>
           <ArrowBigDown
-            className="rounded-r-full p-1 bg-dark-primary-muted h-full"
+            className="rounded-r-full p-1 bg-theme-primary-muted h-full"
             size={28}
           />
         </div>
-        <div className="p-1 px-2 rounded-full bg-dark-primary-muted">
+        <div className="p-1 px-2 rounded-full bg-theme-primary-muted">
           <p>7$</p>
         </div>
       </div>

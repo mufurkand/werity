@@ -9,33 +9,6 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
-would tying variants to a single class with a media query work with tailwind? primary for
-dark-primary and light-primary etc.
-edit: nvm shadcn ruined that possibility with its "primary" etc. classes
-*/
-
-@theme {
-  --color-dark-text: #eeeff2;
-  --color-dark-primary: #b8bac7;
-  --color-dark-secondary: #5a4b62;
-  --color-dark-accent: #a289a4;
-  --color-dark-primary-muted: rgba(184, 186, 199, 0.2);
-  --color-dark-secondary-muted: rgba(90, 75, 98, 0.2);
-  --color-dark-splitter: rgba(184, 186, 199, 0.5);
-  --color-dark-background: #0b0b0e;
-  --color-dark-wallet-gradient: rgba(162, 137, 164, 0.5);
-  --color-light-text: #0d0e11;
-  --color-light-primary: #383a47;
-  --color-light-secondary: #ac9db4;
-  --color-light-accent: #745b76;
-  --color-light-primary-muted: rgba(56, 58, 71, 0.2);
-  --color-light-secondary-muted: rgba(172, 157, 180, 0.2);
-  --color-light-splitter: rgba(56, 58, 71, 0.5);
-  --color-light-background: #f1f1f4;
-  --color-light-wallet-gradient: rgba(116, 91, 118, 0.5);
-}
-
-/*
 ---break---
 */
 
@@ -72,6 +45,15 @@ edit: nvm shadcn ruined that possibility with its "primary" etc. classes
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+  --theme-text: #0d0e11;
+  --theme-primary: #383a47;
+  --theme-secondary: #ac9db4;
+  --theme-accent: #745b76;
+  --theme-primary-muted: rgba(56, 58, 71, 0.2);
+  --theme-secondary-muted: rgba(172, 157, 180, 0.2);
+  --theme-splitter: rgba(56, 58, 71, 0.5);
+  --theme-background: #f1f1f4;
+  --theme-wallet-gradient: rgba(116, 91, 118, 0.5);
 }
 
 /*
@@ -110,6 +92,15 @@ edit: nvm shadcn ruined that possibility with its "primary" etc. classes
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+  --theme-text: #eeeff2;
+  --theme-primary: #b8bac7;
+  --theme-secondary: #5a4b62;
+  --theme-accent: #a289a4;
+  --theme-primary-muted: rgba(184, 186, 199, 0.2);
+  --theme-secondary-muted: rgba(90, 75, 98, 0.2);
+  --theme-splitter: rgba(184, 186, 199, 0.5);
+  --theme-background: #0b0b0e;
+  --theme-wallet-gradient: rgba(162, 137, 164, 0.5);
 }
 
 /*
@@ -152,6 +143,15 @@ edit: nvm shadcn ruined that possibility with its "primary" etc. classes
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-theme-text: var(--theme-text);
+  --color-theme-primary: var(--theme-primary);
+  --color-theme-secondary: var(--theme-secondary);
+  --color-theme-accent: var(--theme-accent);
+  --color-theme-primary-muted: var(--theme-primary-muted);
+  --color-theme-secondary-muted: var(--theme-secondary-muted);
+  --color-theme-splitter: var(--theme-splitter);
+  --color-theme-background: var(--theme-background);
+  --color-theme-wallet-gradient: var(--theme-wall-gradient);
 }
 
 /*
