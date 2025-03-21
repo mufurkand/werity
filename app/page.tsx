@@ -1,3 +1,9 @@
+import PostContainer from "@/components/post-container";
+
 export default function Home() {
-  return <div className="px-4">Homepage</div>;
+  return (
+    <div>
+      <PostContainer />
+    </div>
+  );
 }
