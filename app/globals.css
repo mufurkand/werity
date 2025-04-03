@@ -51,7 +51,7 @@
   --theme-accent: #745b76;
   --theme-primary-muted: rgba(56, 58, 71, 0.2);
   --theme-secondary-muted: rgba(172, 157, 180, 0.2);
-  --theme-splitter: rgba(56, 58, 71, 0.5);
+  --theme-splitter: rgba(56, 58, 71, 0.2);
   --theme-background: #f1f1f4;
   --theme-wallet-gradient: rgba(116, 91, 118, 0.5);
 }
@@ -98,7 +98,7 @@
   --theme-accent: #a289a4;
   --theme-primary-muted: rgba(184, 186, 199, 0.2);
   --theme-secondary-muted: rgba(90, 75, 98, 0.2);
-  --theme-splitter: rgba(184, 186, 199, 0.5);
+  --theme-splitter: rgba(184, 186, 199, 0.2);
   --theme-background: #0b0b0e;
   --theme-wallet-gradient: rgba(162, 137, 164, 0.5);
 }

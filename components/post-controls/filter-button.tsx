@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { twJoin } from "tailwind-merge";
 import { useState } from "react";
 
@@ -14,29 +14,17 @@ export function FilterButton({
   const [open, setOpen] = useState(false);
 
   return (
-    <div>
+    <div className="flex flex-col">
       <button
         onClick={() => setOpen((prev) => !prev)}
         className={twJoin(
-          "flex justify-center bg-theme-secondary-muted p-2 gap-2 items-center w-full transition-all",
-          rounded === "top"
-            ? "rounded-t-lg"
-            : open
-            ? ""
-            : "rounded-b-lg delay-300 duration-500"
+          "flex justify-center bg-theme-secondary-muted p-2 gap-2 items-center w-full",
+          rounded === "top" ? "rounded-t-md" : "rounded-b-md"
         )}
       >
-        {text} <ChevronDown />
+        <p>{text}</p>
+        {open ? <ChevronUp /> : <ChevronDown />}
       </button>
-      <div
-        className={twJoin(
-          "transition-all duration-300 ease-in-out overflow-hidden max-h-0 bg-theme-secondary-muted px-8",
-          open ? "max-h-40 py-8 mt-0.5" : "",
-          rounded === "top" ? "" : "rounded-b-lg"
-        )}
-      >
-        Test
-      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ export default function Post() {
             <div className="rounded-full w-12 h-12 bg-theme-splitter"></div>
             <div>
               <p>Lorem Ipsum</p>
-              <p>@loremipsum</p>
+              <p className="text-neutral-700">@loremipsum</p>
             </div>
             <UserPlus className="rounded-full p-1 bg-theme-accent" size={28} />
           </div>
