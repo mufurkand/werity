@@ -45,15 +45,15 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
-  --theme-text: #0d0e11;
-  --theme-primary: #383a47;
-  --theme-secondary: #ac9db4;
-  --theme-accent: #745b76;
-  --theme-primary-muted: rgba(56, 58, 71, 0.2);
-  --theme-secondary-muted: rgba(172, 157, 180, 0.2);
-  --theme-splitter: rgba(56, 58, 71, 0.2);
-  --theme-background: #f1f1f4;
-  --theme-wallet-gradient: rgba(116, 91, 118, 0.5);
+  --theme-text: oklch(16.4% 0.007 271);
+  --theme-primary: oklch(35.2% 0.023 278.3);
+  --theme-secondary: oklch(71.6% 0.037 314);
+  --theme-accent: oklch(50.6% 0.052 323.9);
+  --theme-primary-muted: oklch(35.2% 0.023 278.3 / 0.2);
+  --theme-secondary-muted: oklch(71.6% 0.037 314 / 0.2);
+  --theme-splitter: oklch(35.2% 0.023 278.3 / 0.2);
+  --theme-background: oklch(95.9% 0.004 286.3);
+  --theme-wallet-gradient: oklch(50.6% 0.052 323.9 / 0.5);
 }
 
 /*
@@ -92,15 +92,15 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
-  --theme-text: #eeeff2;
-  --theme-primary: #b8bac7;
-  --theme-secondary: #5a4b62;
-  --theme-accent: #a289a4;
-  --theme-primary-muted: rgba(184, 186, 199, 0.2);
-  --theme-secondary-muted: rgba(90, 75, 98, 0.2);
-  --theme-splitter: rgba(184, 186, 199, 0.2);
-  --theme-background: #0b0b0e;
-  --theme-wallet-gradient: rgba(162, 137, 164, 0.5);
+  --theme-text: oklch(95.2% 0.004 271.4);
+  --theme-primary: oklch(79.1% 0.018 279);
+  --theme-secondary: oklch(43.7% 0.042 313.8);
+  --theme-accent: oklch(66.2% 0.049 323.8);
+  --theme-primary-muted: oklch(79.1% 0.018 279 / 0.2);
+  --theme-secondary-muted: oklch(43.7% 0.042 313.8 / 0.2);
+  --theme-splitter: oklch(79.1% 0.018 279 / 0.2);
+  --theme-background: oklch(15.1% 0.006 285.6);
+  --theme-wallet-gradient: oklch(66.2% 0.049 323.8 / 0.5);
 }
 
 /*
@@ -151,7 +151,7 @@
   --color-theme-secondary-muted: var(--theme-secondary-muted);
   --color-theme-splitter: var(--theme-splitter);
   --color-theme-background: var(--theme-background);
-  --color-theme-wallet-gradient: var(--theme-wall-gradient);
+  --color-theme-wallet-gradient: var(--theme-wallet-gradient);
 }
 
 /*
