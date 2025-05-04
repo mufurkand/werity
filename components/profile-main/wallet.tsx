@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Send } from "lucide-react";
+import { ArrowBigDown, ArrowBigUp, Redo } from "lucide-react";
 import { useState } from "react";
 
 export default function Wallet() {
@@ -26,28 +26,28 @@ export default function Wallet() {
 
   return (
     <div
-      className="bg-theme-secondary-muted p-6 rounded-lg flex flex-col gap-12 transition hover:scale-105 duration-300 relative overflow-hidden"
+      className="bg-theme-secondary-muted p-6 rounded-lg flex flex-col justify-between w-96 h-56 transition hover:scale-105 duration-300 relative overflow-hidden"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="flex justify-between gap-64 items-center">
+      <div className="flex justify-between items-center">
         <p className="text-4xl text-theme-accent font-bold">23$</p>
         <p className="text-theme-primary">WERITY</p>
       </div>
       <div className="flex justify-between items-end">
         <p className="text-theme-primary">ID123456</p>
-        <div>
-          <div className="flex">
+        <div className="flex flex-col gap-0.5 items-end text-theme-primary">
+          <div className="flex items-center gap-1">
             <p>Send</p>
-            <Send />
+            <Redo size={20} />
           </div>
-          <div className="flex">
+          <div className="flex items-center gap-1">
             <p>Deposit</p>
-            <ChevronUp />
+            <ArrowBigUp size={20} />
           </div>
-          <div className="flex">
+          <div className="flex items-center gap-1">
             <p>Withdraw</p>
-            <ChevronDown />
+            <ArrowBigDown size={20} />
           </div>
         </div>
       </div>
