@@ -1,5 +1,9 @@
 import Post from "@/components/post";
+import PostContainer from "@/components/post-container";
+import PostControls from "@/components/post-controls";
+import ProfileButtons from "@/components/profile-buttons";
 import ProfileMain from "@/components/profile-main";
+import { ExternalLink, LandPlot } from "lucide-react";
 
 export default function Profile() {
   return (
@@ -22,7 +26,21 @@ export default function Profile() {
           <Post />
         </div>
       </div>
-      <div></div>
+      <div className="p-8 flex gap-4 items-center">
+        <ProfileButtons />
+        <div className="w-0.5 bg-theme-splitter h-8"></div>
+        <div className="flex gap-1 items-center">
+          <p>Settings</p>
+          <ExternalLink />
+        </div>
+      </div>
+      <div className="flex p-8 gap-4">
+        <PostContainer />
+        <PostControls />
+        <div className="w-64 h-96 rounded-lg bg-theme-secondary-muted flex justify-center items-center">
+          <LandPlot size={64} strokeWidth={1} />
+        </div>
+      </div>
     </div>
   );
 }
