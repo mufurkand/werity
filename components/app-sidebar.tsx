@@ -13,7 +13,7 @@ import { Circle, House, Rss, Users } from "lucide-react";
 const items = [
   {
     title: "Home",
-    url: "#",
+    url: "/",
     icon: House,
   },
   {

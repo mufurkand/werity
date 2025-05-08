@@ -2,8 +2,8 @@ import { ArrowBigDown, ArrowBigUp, DollarSign } from "lucide-react";
 
 export default function Comment() {
   return (
-    <div className="p-4 rounded-md">
-      <div className="flex gap-2">
+    <div>
+      <div className="flex gap-2 items-center">
         <div className="rounded-full bg-theme-splitter w-10 h-10"></div>
         <div>
           <p className="font-bold">Jane Doe</p>

@@ -8,7 +8,7 @@ export default function PostPage() {
     <div className="flex p-8 justify-center w-full">
       <div className="flex gap-12 justify-center items-start sm:w-5/6 2xl:w-2/3">
         <div className="flex flex-col w-full gap-4 flex-6">
-          <Post />
+          <Post isPage={true} />
           <div className="flex gap-2 items-end">
             <textarea
               className="bg-theme-primary-muted rounded-lg flex-grow resize-none h-36 p-2"
