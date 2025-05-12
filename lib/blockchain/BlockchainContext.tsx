@@ -50,7 +50,6 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
       const result = await blockchainService.init();
 
       if (result) {
-        setIsConnected(true);
         const address = blockchainService.getUserAddress();
         setUserAddress(address);
 
@@ -68,6 +67,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
         }
         console.log(">>outside of try");
 
+        setIsConnected(true);
         return true;
       } else {
         setError("Failed to connect to blockchain");

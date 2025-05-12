@@ -5,10 +5,30 @@ import { SidebarTrigger } from "./ui/sidebar";
 import { useState, useEffect, useRef } from "react";
 import { twJoin } from "tailwind-merge";
 import Link from "next/link";
+import { useBlockchain } from "@/lib/blockchain/BlockchainContext";
+
+interface NavDropdownLinkProps {
+  href: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+
+function NavDropdownLink({ href, children, onClick }: NavDropdownLinkProps) {
+  return (
+    <Link
+      className="flex gap-2 items-center hover:bg-theme-tertiary p-1 rounded-sm transition-colors"
+      href={href}
+      onClick={onClick}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { userProfile } = useBlockchain();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -36,7 +56,9 @@ export default function Navbar() {
           className="flex p-2 px-4 gap-2 bg-theme-secondary transition-all duration-75 rounded-md"
         >
           <User />
-          <p>Lorem</p>
+          <p>
+            {userProfile && userProfile.exists ? userProfile.username : "Guest"}
+          </p>
           {open ? <ChevronUp /> : <ChevronDown />}
         </button>
         <div
@@ -47,13 +69,15 @@ export default function Navbar() {
               : "scale-80 opacity-0 invisible"
           )}
         >
-          <Link
-            className="flex gap-2 items-center"
-            href="/profile"
-            onClick={() => setOpen(false)}
-          >
-            <p>Profile</p>
-          </Link>
+          {userProfile && userProfile.exists ? (
+            <NavDropdownLink href="/profile" onClick={() => setOpen(false)}>
+              Profile
+            </NavDropdownLink>
+          ) : (
+            <NavDropdownLink href="/auth" onClick={() => setOpen(false)}>
+              Login
+            </NavDropdownLink>
+          )}
         </div>
       </div>
     </div>
