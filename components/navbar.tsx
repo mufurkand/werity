@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, User } from "lucide-react";
+import { ChevronDown, ChevronUp, SquarePen, User } from "lucide-react";
 import { SidebarTrigger } from "./ui/sidebar";
 import { useState, useEffect, useRef } from "react";
 import { twJoin } from "tailwind-merge";
@@ -49,35 +49,47 @@ export default function Navbar() {
         <SidebarTrigger className="size-8" />
         <div className="border-r border-theme-splitter w-[1px] h-6"></div>
         <p className="ml-2">Home</p>
-      </div>
-      <div className="relative" ref={menuRef}>
-        <button
-          onClick={() => setOpen((prev) => !prev)}
-          className="flex p-2 px-4 gap-2 bg-theme-secondary transition-all duration-75 rounded-md"
-        >
-          <User />
-          <p>
-            {userProfile && userProfile.exists ? userProfile.username : "Guest"}
-          </p>
-          {open ? <ChevronUp /> : <ChevronDown />}
-        </button>
-        <div
-          className={twJoin(
-            "absolute w-full top-full mt-1 transition-all duration-150 ease-linear transform scale-80 bg-theme-secondary rounded-md px-4 opacity-0 invisible",
-            open
-              ? "scale-100 py-2 opacity-100 visible"
-              : "scale-80 opacity-0 invisible"
-          )}
-        >
-          {userProfile && userProfile.exists ? (
-            <NavDropdownLink href="/profile" onClick={() => setOpen(false)}>
-              Profile
-            </NavDropdownLink>
-          ) : (
-            <NavDropdownLink href="/auth" onClick={() => setOpen(false)}>
-              Login
-            </NavDropdownLink>
-          )}
+      </div>{" "}
+      <div className="flex items-center gap-2">
+        {userProfile && userProfile.exists && (
+          <Link
+            className="bg-theme-accent p-2 rounded-full"
+            href="/post/create"
+          >
+            <SquarePen size={20} />
+          </Link>
+        )}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setOpen((prev) => !prev)}
+            className="flex p-2 px-4 gap-2 bg-theme-secondary transition-all duration-75 rounded-md"
+          >
+            <User />
+            <p>
+              {userProfile && userProfile.exists
+                ? userProfile.username
+                : "Guest"}
+            </p>
+            {open ? <ChevronUp /> : <ChevronDown />}
+          </button>
+          <div
+            className={twJoin(
+              "absolute w-full top-full mt-1 transition-all duration-150 ease-linear transform scale-80 bg-theme-secondary rounded-md px-4 opacity-0 invisible",
+              open
+                ? "scale-100 py-2 opacity-100 visible"
+                : "scale-80 opacity-0 invisible"
+            )}
+          >
+            {userProfile && userProfile.exists ? (
+              <NavDropdownLink href="/profile" onClick={() => setOpen(false)}>
+                Profile
+              </NavDropdownLink>
+            ) : (
+              <NavDropdownLink href="/auth" onClick={() => setOpen(false)}>
+                Login
+              </NavDropdownLink>
+            )}
+          </div>
         </div>
       </div>
     </div>
