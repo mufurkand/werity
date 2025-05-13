@@ -1,10 +1,21 @@
 "use client";
 
+import { useBlockchain } from "@/lib/blockchain/BlockchainContext";
+import blockchainService from "@/lib/blockchain/contracts";
 import { ArrowBigDown, ArrowBigUp, Redo } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Wallet() {
   const [position, setPosition] = useState({ x: -172, y: -172 });
+  const { userAddress } = useBlockchain();
+  const [balance, setBalance] = useState("0");
+
+  // Function to truncate address
+  const truncateAddress = (address: string | undefined | null) => {
+    if (!address) return "";
+    if (address.length <= 13) return address;
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -24,18 +35,34 @@ export default function Wallet() {
     transition: "left 0.3s linear, top 0.3s linear", // Linear animation
   };
 
+  useEffect(() => {
+    if (userAddress) {
+      loadBalance();
+    }
+  }, [userAddress]);
+
+  async function loadBalance() {
+    if (!userAddress) return;
+    try {
+      const balance = await blockchainService.getBalance(userAddress);
+      setBalance(balance);
+    } catch (error) {
+      console.error("Error loading balance:", error);
+    }
+  }
+
   return (
     <div
-      className="bg-theme-secondary-muted p-6 rounded-lg flex flex-col justify-between w-96 h-56 transition hover:scale-105 duration-300 relative overflow-hidden"
+      className="bg-theme-secondary-muted p-6 rounded-lg flex flex-col justify-between w-[500px] h-56 transition hover:scale-105 duration-300 relative overflow-hidden"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
       <div className="flex justify-between items-center">
-        <p className="text-4xl text-theme-accent font-bold">23$</p>
+        <p className="text-4xl text-theme-accent font-bold">{balance}$</p>
         <p className="text-theme-primary">WERITY</p>
       </div>
       <div className="flex justify-between items-end">
-        <p className="text-theme-primary">ID123456</p>
+        <p className="text-theme-primary">{truncateAddress(userAddress)}</p>
         <div className="flex flex-col gap-0.5 items-end text-theme-primary">
           <div className="flex items-center gap-1">
             <p>Send</p>

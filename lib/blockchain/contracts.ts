@@ -141,7 +141,11 @@ const ABIs = {
   CommentManager: CommentManagerABI,
   FollowManager: FollowManagerABI,
   ModerationManager: ModerationManagerABI,
-  SocialToken: [],
+  SocialToken: [
+    "function balanceOf(address account) external view returns (uint256)",
+    "function transfer(address to, uint256 amount) external returns (bool)",
+    "function totalSupply() external view returns (uint256)",
+  ],
   TokenManager: [],
   PostNFT: [],
   PostMarketplace: [],
@@ -405,11 +409,14 @@ export class BlockchainService {
         ABIs.ModerationManager,
         this.signer
       );
-
       this.contracts.socialToken = new ethers.Contract(
         contractAddresses.socialToken,
         ABIs.SocialToken,
         this.signer
+      );
+      console.log(
+        "Initialized SocialToken contract with address:",
+        contractAddresses.socialToken
       );
 
       this.contracts.tokenManager = new ethers.Contract(
@@ -1176,23 +1183,29 @@ export class BlockchainService {
       return false;
     }
   }
-
   // Token Manager Methods
   async getBalance(address: string): Promise<string> {
     try {
       const socialToken = this.contracts.socialToken;
+      if (!socialToken) {
+        console.error("SocialToken contract is not initialized");
+        return "0";
+      }
       const balance = await socialToken.balanceOf(address);
-      return ethers.utils.formatUnits(balance, 18); // Assuming 18 decimals
+      return ethers.formatUnits(balance, 18); // Assuming 18 decimals
     } catch (error) {
       console.error("Error fetching token balance:", error);
       return "0";
     }
   }
-
   async transfer(to: string, amount: string): Promise<boolean> {
     try {
       const socialToken = this.contracts.socialToken;
-      const parsedAmount = ethers.utils.parseUnits(amount, 18); // Assuming 18 decimals
+      if (!socialToken) {
+        console.error("SocialToken contract is not initialized");
+        return false;
+      }
+      const parsedAmount = ethers.parseUnits(amount, 18); // Assuming 18 decimals
       const tx = await socialToken.transfer(to, parsedAmount);
       await tx.wait();
       return true;
@@ -1206,7 +1219,7 @@ export class BlockchainService {
     try {
       const socialToken = this.contracts.socialToken;
       const supply = await socialToken.totalSupply();
-      return ethers.utils.formatUnits(supply, 18); // Assuming 18 decimals
+      return ethers.formatUnits(supply, 18); // Assuming 18 decimals
     } catch (error) {
       console.error("Error fetching total supply:", error);
       return "0";
@@ -1229,7 +1242,7 @@ export class BlockchainService {
   async listNFTForSale(tokenId: number, price: string): Promise<boolean> {
     try {
       const postMarketplace = this.contracts.postMarketplace;
-      const parsedPrice = ethers.utils.parseUnits(price, 18); // Assuming 18 decimals
+      const parsedPrice = ethers.parseUnits(price, 18); // Assuming 18 decimals
       const tx = await postMarketplace.listForSale(tokenId, parsedPrice);
       await tx.wait();
       return true;
