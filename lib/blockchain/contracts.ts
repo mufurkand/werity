@@ -104,7 +104,13 @@ const CommentManagerABI = [
   "function unlikeComment(uint256 _commentId) external",
   "function deleteComment(uint256 _commentId) external",
   "function hasLikedComment(address _userAddress, uint256 _commentId) external view returns (bool)",
+  "function getCommentCount() external view returns (uint256)",
+  "function getCommentCountByPostId(uint256 _postId) external view returns (uint256)",
+  "function getCommentsByUser(address _userAddress, uint256 _offset, uint256 _limit) external view returns (tuple(uint256 postId, address author, string content, uint64 timestamp, uint32 likesCount, bool isDeleted)[] comments_, uint256[] commentIds)",
   "event CommentCreated(uint256 indexed commentId, uint256 indexed postId, address indexed author, string content, uint64 timestamp)",
+  "event CommentLiked(uint256 indexed commentId, address indexed liker, uint64 timestamp)",
+  "event CommentUnliked(uint256 indexed commentId, address indexed unliker, uint64 timestamp)",
+  "event CommentDeleted(uint256 indexed commentId, address indexed author, uint64 timestamp)"
 ];
 
 // Define FollowManager ABI
@@ -928,27 +934,99 @@ export class BlockchainService {
         gasLimit: 300000, // Comments may need more gas than likes
       });
 
+      console.log("Comment transaction sent:", tx.hash);
       const receipt = await tx.wait();
+      console.log("Comment transaction receipt:", receipt);
 
       // Extract commentId from event logs
       try {
-        const event = receipt.events?.find(
-          (e: any) => e.event === "CommentCreated"
-        );
-        console.log(">>>Event:", event);
-        console.log(">>>receipt:", receipt);
-        if (!event || !event.args) {
+        // Get the CommentCreated event directly from the events array
+        const event = receipt.logs.find((log: any) => {
+          // Check if this log's address matches our contract address
+          const contractAddress = typeof commentManager.target === 'string' 
+            ? commentManager.target.toLowerCase() 
+            : commentManager.target.toString().toLowerCase();
+          
+          if (log.address.toLowerCase() !== contractAddress) {
+            return false;
+          }
+          
+          // Try to decode the log's first topic (event signature)
+          try {
+            // CommentCreated event has 3 indexed parameters (commentId, postId, author)
+            // We need at least 4 topics (1 for signature, 3 for indexed params)
+            if (log.topics.length !== 4) {
+              return false;
+            }
+            
+            // Get the event signature from our contract interface for CommentCreated
+            const commentCreatedEvent = commentManager.interface.getEvent("CommentCreated");
+            if (!commentCreatedEvent) {
+              return false;
+            }
+            
+            // Get the event signature hash
+            const eventSignature = ethers.id(
+              `CommentCreated(uint256,uint256,address,string,uint64)`
+            );
+            
+            // Check if this log's first topic matches our event signature
+            return log.topics[0] === eventSignature;
+          } catch (e) {
+            return false;
+          }
+        });
+
+        console.log("Comment created event:", event);
+
+        if (!event) {
           console.error("Comment created but event not found in receipt");
+          
+          // Fallback: If the event is not found, query for the most recent comment 
+          // by this user for this post
+          const comments = await commentManager.getCommentsByPostId(postId, 0, 1);
+          if (comments && comments.length > 1 && comments[1].length > 0) {
+            const commentId = comments[1][0];
+            console.log("Retrieved commentId through fallback query:", commentId);
+            return typeof commentId.toNumber === "function"
+              ? commentId.toNumber()
+              : Number(commentId);
+          }
+          
           return null;
         }
 
-        // CommentCreated event has commentId as the first indexed parameter
-        const commentId = event.args[0];
-        return commentId
-          ? typeof commentId.toNumber === "function"
-            ? commentId.toNumber()
-            : Number(commentId)
-          : null;
+        // Decode the event data to get the commentId
+        try {
+          // Decode the log using ethers
+          const decodedData = commentManager.interface.parseLog({
+            topics: event.topics,
+            data: event.data
+          });
+          
+          // Get the commentId (first arg)
+          const commentId = decodedData?.args[0];
+          console.log("Comment ID from event:", commentId);
+          
+          return commentId
+            ? typeof commentId.toNumber === "function"
+              ? commentId.toNumber()
+              : Number(commentId)
+            : null;
+        } catch (decodeError) {
+          console.error("Error decoding comment event:", decodeError);
+          
+          // Try a simpler approach - get the comment ID from the first topic
+          // The comment ID should be the second topic (index 1) after removing the 0x and converting to decimal
+          const commentIdHex = event.topics[1];
+          if (commentIdHex) {
+            const commentId = parseInt(commentIdHex.slice(2), 16);
+            console.log("Retrieved commentId from topic:", commentId);
+            return commentId;
+          }
+          
+          return null;
+        }
       } catch (eventError) {
         console.error("Error parsing comment event:", eventError);
         return null;
