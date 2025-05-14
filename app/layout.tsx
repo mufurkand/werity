@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { cookies } from "next/headers";
 import Navbar from "@/components/navbar";
+import { BlockchainProvider } from "@/lib/blockchain/BlockchainContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,13 +36,15 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-theme-background`}
       >
-        <SidebarProvider defaultOpen={defaultOpen}>
-          <AppSidebar />
-          <div className="w-full overflow-auto">
-            <Navbar />
-            <main>{children}</main>
-          </div>
-        </SidebarProvider>
+        <BlockchainProvider>
+          <SidebarProvider defaultOpen={defaultOpen}>
+            <AppSidebar />
+            <div className="w-full overflow-auto">
+              <Navbar />
+              <main>{children}</main>
+            </div>
+          </SidebarProvider>
+        </BlockchainProvider>
       </body>
     </html>
   );
