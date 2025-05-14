@@ -3,6 +3,7 @@ import Wallet from "./profile-main/wallet";
 import { useBlockchain } from "@/lib/blockchain/BlockchainContext";
 import { useEffect, useState } from "react";
 import blockchainService from "@/lib/blockchain/contracts";
+import { truncateAddress } from "@/lib/utils/addressFormat";
 
 export default function ProfileMain() {
   const { userProfile, userAddress } = useBlockchain();
@@ -40,7 +41,9 @@ export default function ProfileMain() {
           <div className="flex flex-col justify-center gap-2">
             <div>
               <h1 className="text-2xl font-bold">{userProfile?.username}</h1>
-              <p className="text-theme-primary">@{userProfile?.username}</p>
+              <p className="text-theme-primary">
+                {truncateAddress(userAddress)}
+              </p>
             </div>
             <button className="bg-theme-secondary rounded-md flex gap-2 items-center justify-center p-1">
               <UserPlus />

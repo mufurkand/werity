@@ -1,25 +1,70 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import { useBlockchain } from "@/lib/blockchain/BlockchainContext";
-import Post from "./post-container/post";
-import { useEffect, useState } from "react";
-import { PostType } from "@/types/posts";
 import blockchainService from "@/lib/blockchain/contracts";
-import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { PostType } from "@/types/posts";
 
-type PostContainerProps = {
-  showAllPosts?: boolean;
-  userId?: string;
-  postId?: number;
+type PostProps = {
+  post: PostType;
+  onLike: (postId: number, alreadyLiked: boolean) => Promise<void>;
+  loading: boolean;
 };
 
-export default function PostContainer({
+export function Post({ post, onLike, loading }: PostProps) {
+  const router = useRouter();
+
+  function handlePostClick() {
+    router.push(`/post/${post.id}`);
+  }
+
+  return (
+    <div>
+      <div onClick={handlePostClick} style={{ cursor: "pointer" }}>
+        <div>
+          <span>Post ID: {post.id}</span>
+          <span>
+            By: {post.author.substring(0, 6)}...{post.author.substring(38)}
+          </span>
+          <span>{new Date(post.timestamp * 1000).toLocaleString()}</span>
+        </div>
+
+        <p>
+          {post.contentIPFS && post.contentIPFS.startsWith("ipfs://") ? (
+            <span>View on IPFS</span>
+          ) : (
+            post.contentIPFS || "No content"
+          )}
+        </p>
+      </div>
+
+      <div>
+        <span>Likes: {post.likesCount}</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onLike(post.id, !!post.isLikedByUser);
+          }}
+          disabled={loading}
+        >
+          {post.isLikedByUser ? "Unlike" : "Like"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface UserPostContainerProps {
+  showAllPosts?: boolean;
+  userId?: string;
+}
+
+export const UserPostContainer: React.FC<UserPostContainerProps> = ({
   showAllPosts = false,
   userId,
-  postId,
-}: PostContainerProps) {
-  const { isConnected, userAddress } = useBlockchain();
+}) => {
+  const { isConnected, userAddress, connect } = useBlockchain();
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState<PostType[]>([]);
   const [loadingPostId, setLoadingPostId] = useState<number | null>(null);
@@ -29,9 +74,7 @@ export default function PostContainer({
 
   useEffect(() => {
     if (isConnected) {
-      if (postId) {
-        loadSinglePost(postId);
-      } else if (showAllPosts) {
+      if (showAllPosts) {
         loadAllPosts(true);
       } else {
         const targetAddress = userId || userAddress;
@@ -40,41 +83,7 @@ export default function PostContainer({
         }
       }
     }
-  }, [isConnected, userAddress, userId, showAllPosts, postId]);
-
-  const loadSinglePost = async (id: number) => {
-    try {
-      setLoading(true);
-      const post = await blockchainService.getPost(id);
-
-      if (!post || post.isDeleted) {
-        setPosts([]);
-        return;
-      }
-
-      let isLikedByUser = false;
-      if (userAddress) {
-        try {
-          isLikedByUser = await blockchainService.hasLikedPost(userAddress, id);
-        } catch (error) {
-          console.error(`Error checking like status for post ${id}:`, error);
-        }
-      }
-
-      const postWithDetails = {
-        id,
-        ...post,
-        isLikedByUser,
-      };
-
-      setPosts([postWithDetails]);
-    } catch (error) {
-      console.error(`Error loading post ${id}:`, error);
-      setPosts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isConnected, userAddress, userId, showAllPosts]);
 
   const loadUserPosts = async (address: string) => {
     try {
@@ -177,8 +186,6 @@ export default function PostContainer({
         (post) => post !== null
       ) as PostType[];
 
-      console.log("Fetched posts:", validPosts);
-
       if (reset) {
         setPosts(validPosts);
       } else {
@@ -210,9 +217,10 @@ export default function PostContainer({
       return [];
     }
   };
+
   const handleLikePost = async (postId: number, alreadyLiked: boolean) => {
     if (!isConnected) {
-      alert("Please login or register first");
+      alert("Please connect to MetaMask first");
       return;
     }
 
@@ -268,48 +276,51 @@ export default function PostContainer({
       loadAllPosts(false);
     }
   };
+
   if (!isConnected) {
     return (
-      <div className="flex-6 p-4 flex justify-center items-center">
-        <Link
-          href="/auth"
-          className="bg-theme-secondary p-2 rounded-lg flex gap-2 items-center"
-        >
-          <p>Login/Register first to view posts</p>
-          <ExternalLink size={20} />
-        </Link>
+      <div>
+        <button onClick={connect}>Connect with MetaMask</button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col flex-6 gap-8">
-      {posts.length > 0 ? (
-        <>
-          {posts.map((post) => (
-            <Post
-              key={post.id}
-              post={post}
-              onLike={handleLikePost}
-              loading={loadingPostId === post.id}
-            />
-          ))}
+    <div>
+      <div>
+        <h3>{showAllPosts ? "All Posts" : "User Posts"}</h3>
 
-          {showAllPosts && hasMorePosts && (
-            <button
-              onClick={loadMorePosts}
-              disabled={loading}
-              className="bg-theme-secondary p-2 rounded-lg text-center"
-            >
-              Load More Posts
-            </button>
-          )}
-        </>
-      ) : (
-        <div className="flex justify-center items-center p-6 bg-theme-secondary-muted rounded-lg">
-          <p className="text-theme-text">No posts to display</p>
-        </div>
-      )}
+        {showAllPosts && (
+          <button onClick={() => loadAllPosts(true)} disabled={loading}>
+            {loading ? "Loading..." : "Refresh Posts"}
+          </button>
+        )}
+
+        {loading && posts.length === 0 ? (
+          <p>Loading posts...</p>
+        ) : posts.length === 0 ? (
+          <p>{showAllPosts ? "No posts found." : "No posts yet."}</p>
+        ) : (
+          <div>
+            {posts.map((post) => (
+              <Post
+                key={post.id}
+                post={post}
+                onLike={handleLikePost}
+                loading={loadingPostId === post.id}
+              />
+            ))}
+
+            {showAllPosts && hasMorePosts && (
+              <button onClick={loadMorePosts} disabled={loading}>
+                Load More Posts
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default UserPostContainer;

@@ -7,16 +7,16 @@ import { twJoin } from "tailwind-merge";
 import { Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-interface BlockchainAuthProps {
+type BlockchainAuthProps = {
   onLoginSuccess?: (address: string) => void;
   onRegisterSuccess?: (username: string) => void;
-}
+};
 
-interface FormDataType {
+type FormDataType = {
   username: string;
   profilePhotoIPFS: string;
   bio: string;
-}
+};
 
 export default function BlockchainAuth({
   onLoginSuccess,

@@ -2,20 +2,30 @@
 
 import { useBlockchain } from "@/lib/blockchain/BlockchainContext";
 import blockchainService from "@/lib/blockchain/contracts";
+import { truncateAddress } from "@/lib/utils/addressFormat";
 import { ArrowBigDown, ArrowBigUp, Redo } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export default function Wallet() {
   const [position, setPosition] = useState({ x: -172, y: -172 });
   const { userAddress } = useBlockchain();
   const [balance, setBalance] = useState("0");
 
-  // Function to truncate address
-  const truncateAddress = (address: string | undefined | null) => {
-    if (!address) return "";
-    if (address.length <= 13) return address;
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
+  const loadBalance = useCallback(async () => {
+    if (!userAddress) return;
+    try {
+      const balance = await blockchainService.getBalance(userAddress);
+      setBalance(balance);
+    } catch (error) {
+      console.error("Error loading balance:", error);
+    }
+  }, [userAddress]);
+
+  useEffect(() => {
+    if (userAddress) {
+      loadBalance();
+    }
+  }, [userAddress, loadBalance]);
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -34,22 +44,6 @@ export default function Wallet() {
     top: `${position.y}px`,
     transition: "left 0.3s linear, top 0.3s linear", // Linear animation
   };
-
-  useEffect(() => {
-    if (userAddress) {
-      loadBalance();
-    }
-  }, [userAddress]);
-
-  async function loadBalance() {
-    if (!userAddress) return;
-    try {
-      const balance = await blockchainService.getBalance(userAddress);
-      setBalance(balance);
-    } catch (error) {
-      console.error("Error loading balance:", error);
-    }
-  }
 
   return (
     <div

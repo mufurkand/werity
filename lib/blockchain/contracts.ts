@@ -588,6 +588,7 @@ export class BlockchainService {
       const receipt = await tx.wait();
 
       // Extract postId from event logs
+      console.log(">>>Receipt:", receipt);
       const event = receipt.events?.find((e: any) => e.event === "PostCreated");
       const postId = event?.args?.postId.toNumber();
 
@@ -757,7 +758,6 @@ export class BlockchainService {
       throw new Error(errorMessage);
     }
   }
-
   async getUserPosts(address: string): Promise<number[]> {
     try {
       const postManager = this.contracts.postManager;
@@ -769,7 +769,21 @@ export class BlockchainService {
       }
 
       const posts = await postManager.getPostsByUser(address);
-      return posts.map((id: any) => id.toNumber());
+      console.log(">>Fetched user posts:", posts);
+      return posts.map((id: any) => {
+        // Handle BigInt values (which don't have toNumber method)
+        if (typeof id === "bigint") {
+          return Number(id);
+        }
+        // Handle ethers.js BigNumber which has toNumber method
+        else if (typeof id.toNumber === "function") {
+          return id.toNumber();
+        }
+        // Fallback for other numeric types
+        else {
+          return Number(id);
+        }
+      });
     } catch (error) {
       console.error("Error fetching user posts:", error);
       return [];
@@ -809,7 +823,20 @@ export class BlockchainService {
         const result = await commentManager.getCommentsByPostId(postId, 0, 100);
         // Return the comment IDs from the result
         return result && result.commentIds
-          ? result.commentIds.map((id: any) => id.toNumber())
+          ? result.commentIds.map((id: any) => {
+              // Handle BigInt values (which don't have toNumber method)
+              if (typeof id === "bigint") {
+                return Number(id);
+              }
+              // Handle ethers.js BigNumber which has toNumber method
+              else if (typeof id.toNumber === "function") {
+                return id.toNumber();
+              }
+              // Fallback for other numeric types
+              else {
+                return Number(id);
+              }
+            })
           : [];
       } catch (error) {
         console.error(`Error fetching comments for post ${postId}:`, error);
@@ -908,6 +935,8 @@ export class BlockchainService {
         const event = receipt.events?.find(
           (e: any) => e.event === "CommentCreated"
         );
+        console.log(">>>Event:", event);
+        console.log(">>>receipt:", receipt);
         if (!event || !event.args) {
           console.error("Comment created but event not found in receipt");
           return null;
