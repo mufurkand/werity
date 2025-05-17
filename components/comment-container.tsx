@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Comment from "./comment";
 import { SendHorizonal, Settings } from "lucide-react";
 import blockchainService from "@/lib/blockchain/contracts";
@@ -14,6 +14,7 @@ interface Comment {
   timestamp: number;
   likesCount: number;
   isDeleted: boolean;
+  isLikedByUser?: boolean;
 }
 
 interface CommentContainerProps {
@@ -25,21 +26,13 @@ export default function CommentContainer({
   showCommentInput = true,
   postId,
 }: CommentContainerProps) {
-  const { isConnected } = useBlockchain();
+  const { isConnected, userAddress } = useBlockchain();
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentContent, setCommentContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log("isConnected:", isConnected);
-    console.log("postId:", postId);
-    if (isConnected && postId !== undefined) {
-      loadComments();
-    }
-  }, [isConnected, postId]);
-
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     console.log("Loading comments for post ID:", postId);
     if (postId === undefined) return;
 
@@ -55,7 +48,24 @@ export default function CommentContainer({
       const commentPromises = commentIds.map(async (id: number) => {
         try {
           const comment = await blockchainService.getComment(id);
-          return comment ? { id, ...comment } : null;
+          if (!comment) return null;
+
+          let isLikedByUser = false;
+          if (userAddress) {
+            try {
+              isLikedByUser = await blockchainService.hasLikedComment(
+                userAddress,
+                id
+              );
+            } catch (error) {
+              console.error(
+                `Error checking like status for comment ${id}:`,
+                error
+              );
+            }
+          }
+
+          return comment ? { id, ...comment, isLikedByUser } : null;
         } catch (error) {
           console.error(`Error loading comment ${id}:`, error);
           return null;
@@ -73,7 +83,15 @@ export default function CommentContainer({
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId, userAddress]);
+
+  useEffect(() => {
+    console.log("isConnected:", isConnected);
+    console.log("postId:", postId);
+    if (isConnected && postId !== undefined) {
+      loadComments();
+    }
+  }, [isConnected, postId, loadComments]);
 
   const handleAddComment = async () => {
     if (!isConnected) {
@@ -119,7 +137,10 @@ export default function CommentContainer({
     }
   };
 
-  const handleLikeComment = async (commentId: number) => {
+  const handleLikeComment = async (
+    commentId: number,
+    alreadyLiked: boolean
+  ) => {
     if (!isConnected) {
       alert("Please connect to MetaMask first");
       return;
@@ -127,19 +148,47 @@ export default function CommentContainer({
 
     try {
       setLoadingAction(`like-comment-${commentId}`);
-      await blockchainService.likeComment(commentId);
 
-      // Update comment in local state
-      setComments(
-        comments.map((comment) => {
-          if (comment.id === commentId) {
-            return { ...comment, likesCount: comment.likesCount + 1 };
-          }
-          return comment;
-        })
-      );
+      if (alreadyLiked) {
+        // Unlike the comment
+        await blockchainService.unlikeComment(commentId);
+
+        // Update comment in local state
+        setComments(
+          comments.map((comment) => {
+            if (comment.id === commentId) {
+              return {
+                ...comment,
+                likesCount: Math.max(0, comment.likesCount - 1),
+                isLikedByUser: false,
+              };
+            }
+            return comment;
+          })
+        );
+      } else {
+        // Like the comment
+        await blockchainService.likeComment(commentId);
+
+        // Update comment in local state
+        setComments(
+          comments.map((comment) => {
+            if (comment.id === commentId) {
+              return {
+                ...comment,
+                likesCount: comment.likesCount + 1,
+                isLikedByUser: true,
+              };
+            }
+            return comment;
+          })
+        );
+      }
     } catch (error) {
-      console.error("Error liking comment:", error);
+      console.error(
+        `Error ${alreadyLiked ? "unliking" : "liking"} comment:`,
+        error
+      );
       alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setLoadingAction(null);
@@ -184,7 +233,9 @@ export default function CommentContainer({
             content={comment.content}
             timestamp={comment.timestamp}
             likesCount={comment.likesCount}
+            isLikedByUser={comment.isLikedByUser || false}
             onLike={handleLikeComment}
+            loading={loadingAction === `like-comment-${comment.id}`}
           />
         ))
       ) : (

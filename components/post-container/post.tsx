@@ -1,5 +1,5 @@
 import { PostType } from "@/types/posts";
-import { ArrowBigUp, UserPlus } from "lucide-react";
+import { ArrowBigUp, Loader, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { twJoin } from "tailwind-merge";
 
@@ -29,7 +29,6 @@ export default function Post({ post, onLike, loading, isPage }: PostProps) {
               <p>{post.author}</p>
               <p className="text-theme-primary">@{post.author}</p>
             </div>
-            {/* TODO: new Date(post.timestamp * 1000).toLocaleString() */}
             <UserPlus className="rounded-full p-1 bg-theme-accent" size={28} />
           </div>
         </div>
@@ -54,8 +53,13 @@ export default function Post({ post, onLike, loading, isPage }: PostProps) {
                 ? "bg-theme-accent text-theme-text"
                 : "bg-theme-primary-muted"
             )}
+            disabled={loading}
           >
-            <ArrowBigUp className="pt-0.5" size={20} />
+            {loading ? (
+              <Loader className="animate-spin" size={20} />
+            ) : (
+              <ArrowBigUp className="pt-0.5" size={20} />
+            )}
             <p>{post.likesCount}</p>
           </button>
           <div className="p-1 px-2 rounded-full bg-theme-primary-muted">

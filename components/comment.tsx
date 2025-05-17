@@ -1,4 +1,5 @@
-import { ArrowBigDown, ArrowBigUp, DollarSign } from "lucide-react";
+import { ArrowBigUp, Loader } from "lucide-react";
+import { twJoin } from "tailwind-merge";
 
 interface CommentProps {
   id: number;
@@ -6,7 +7,9 @@ interface CommentProps {
   content: string;
   timestamp: number;
   likesCount: number;
-  onLike?: (commentId: number) => Promise<void>;
+  isLikedByUser: boolean;
+  loading?: boolean;
+  onLike?: (commentId: number, alreadyLiked: boolean) => Promise<void>;
 }
 
 export default function Comment({
@@ -15,10 +18,12 @@ export default function Comment({
   content,
   timestamp,
   likesCount,
+  isLikedByUser,
+  loading = false,
   onLike,
 }: CommentProps) {
   return (
-    <div>
+    <div className="flex flex-col gap-2">
       <div className="flex gap-2 items-center">
         <div className="rounded-full bg-theme-splitter w-10 h-10"></div>
         <div>
@@ -30,25 +35,28 @@ export default function Comment({
           </p>
         </div>
       </div>
-      <p className="mt-2">{content}</p>
-      <div className="flex gap-4 text-theme-accent mt-2">
-        <div className="flex items-center gap-0.5 h-8">
-          <ArrowBigUp
-            onClick={() => onLike && onLike(id)}
-            className="rounded-l-full p-1 bg-theme-primary-muted h-full cursor-pointer"
-            size={28}
-          />
-          <div className="p-1 px-2 bg-theme-primary-muted h-full">
-            {likesCount}
-          </div>
-          <ArrowBigDown
-            className="rounded-r-full p-1 bg-theme-primary-muted h-full"
-            size={28}
-          />
-        </div>
-        <button className="p-1 px-2 rounded-full bg-theme-primary-muted">
-          <DollarSign size={20} />
+      <p>{content}</p>{" "}
+      <div className="flex gap-2 text-theme-accent">
+        <button
+          onClick={() => onLike && !loading && onLike(id, isLikedByUser)}
+          className={twJoin(
+            "flex items-center justify-center gap-0.5 h-8 rounded-full px-2 pr-3 cursor-pointer",
+            isLikedByUser
+              ? "bg-theme-accent text-theme-text"
+              : "bg-theme-primary-muted"
+          )}
+          disabled={loading}
+        >
+          {loading ? (
+            <Loader className="animate-spin" size={20} />
+          ) : (
+            <ArrowBigUp className="pt-0.5" size={20} />
+          )}
+          <p>{likesCount}</p>
         </button>
+        <div className="p-1 px-2 rounded-full bg-theme-primary-muted">
+          <p>7$</p>
+        </div>
       </div>
     </div>
   );
