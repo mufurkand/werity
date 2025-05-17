@@ -1,5 +1,6 @@
 import { ArrowBigUp, Loader } from "lucide-react";
 import { twJoin } from "tailwind-merge";
+import Link from "next/link";
 
 interface CommentProps {
   id: number;
@@ -27,9 +28,11 @@ export default function Comment({
       <div className="flex gap-2 items-center">
         <div className="rounded-full bg-theme-splitter w-10 h-10"></div>
         <div>
-          <p className="font-bold">
-            {author.slice(0, 6)}...{author.slice(-4)}
-          </p>
+          <Link href={`/profile/${author}`} className="hover:underline">
+            <p className="font-bold">
+              {author.slice(0, 6)}...{author.slice(-4)}
+            </p>
+          </Link>
           <p className="text-theme-primary">
             {new Date(timestamp * 1000).toLocaleString()}
           </p>

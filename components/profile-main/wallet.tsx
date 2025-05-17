@@ -6,9 +6,14 @@ import { truncateAddress } from "@/lib/utils/addressFormat";
 import { ArrowBigDown, ArrowBigUp, Redo } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-export default function Wallet() {
+interface WalletProps {
+  targetAddress?: string;
+}
+
+export default function Wallet({ targetAddress }: WalletProps) {
   const [position, setPosition] = useState({ x: -172, y: -172 });
-  const { userAddress } = useBlockchain();
+  const { userAddress: contextUserAddress } = useBlockchain();
+  const userAddress = targetAddress || contextUserAddress;
   const [balance, setBalance] = useState("0");
 
   const loadBalance = useCallback(async () => {

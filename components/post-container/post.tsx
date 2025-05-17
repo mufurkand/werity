@@ -1,6 +1,7 @@
 import { PostType } from "@/types/posts";
 import { ArrowBigUp, Loader, UserPlus } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { twJoin } from "tailwind-merge";
 
 type PostProps = {
@@ -11,6 +12,8 @@ type PostProps = {
 };
 
 export default function Post({ post, onLike, loading, isPage }: PostProps) {
+  const router = useRouter();
+
   if (!post) return null;
 
   function handleLikeClick(e: React.MouseEvent) {
@@ -19,15 +22,27 @@ export default function Post({ post, onLike, loading, isPage }: PostProps) {
     onLike(post.id, post.isLikedByUser || false);
   }
 
+  function handleProfileClick(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/profile/${post.author}`);
+  }
+
   const content = (
     <div className={twJoin("flex flex-col gap-4", !isPage && "cursor-pointer")}>
       <div>
         <div>
           <div className="flex items-center gap-4">
+            {" "}
             <div className="rounded-full w-12 h-12 bg-theme-splitter"></div>
             <div>
-              <p>{post.author}</p>
-              <p className="text-theme-primary">@{post.author}</p>
+              <button
+                onClick={handleProfileClick}
+                className="text-left hover:underline"
+              >
+                <p>{post.author}</p>
+                <p className="text-theme-primary">@{post.author}</p>
+              </button>
             </div>
             <UserPlus className="rounded-full p-1 bg-theme-accent" size={28} />
           </div>
