@@ -30,11 +30,14 @@ export default function PostContainer({
   useEffect(() => {
     if (isConnected) {
       if (postId) {
+        console.warn("Loading single post");
         loadSinglePost(postId);
       } else if (showAllPosts) {
+        console.warn("Loading all posts");
         loadAllPosts(true);
       } else {
         const targetAddress = userId || userAddress;
+        console.warn("Loading user posts:", targetAddress, " userId:", userId);
         if (targetAddress) {
           loadUserPosts(targetAddress);
         }

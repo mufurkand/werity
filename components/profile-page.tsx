@@ -9,6 +9,7 @@ import blockchainService from "@/lib/blockchain/contracts";
 import { ExternalLink, LandPlot } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type UserProfile } from "@/lib/blockchain/contracts";
+import Post from "./post";
 
 interface ProfilePageProps {
   userAddress?: string;
@@ -23,6 +24,7 @@ export default function ProfilePage({ userAddress }: ProfilePageProps) {
   const [loading, setLoading] = useState(!!userAddress);
 
   useEffect(() => {
+    console.warn("User address from props:", userAddress);
     // Load user profile from the provided address if available
     if (userAddress) {
       setLoading(true);
@@ -73,8 +75,15 @@ export default function ProfilePage({ userAddress }: ProfilePageProps) {
           <p className="text-theme-primary text-2xl font-semibold">Display</p>
         </div>{" "}
         <div className="flex gap-4 overflow-x-auto pb-4 snap-x max-w-full">
-          {/* Use the real post component for the user's posts */}
-          <PostContainer userId={userAddress || undefined} />
+          <Post />
+          <Post />
+          <Post />
+          <Post />
+          <Post />
+          <Post />
+          <Post />
+          <Post />
+          <Post />
         </div>
       </div>
       <div className="p-8 flex gap-4 items-center">
@@ -86,7 +95,7 @@ export default function ProfilePage({ userAddress }: ProfilePageProps) {
         </div>
       </div>
       <div className="flex p-8 gap-4">
-        <PostContainer />
+        <PostContainer userId={userAddress || undefined} />
         <PostControls />
         <div className="w-64 h-96 rounded-lg bg-theme-secondary-muted flex justify-center items-center">
           <LandPlot size={64} strokeWidth={1} />
