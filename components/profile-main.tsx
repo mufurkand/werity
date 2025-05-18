@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import blockchainService from "@/lib/blockchain/contracts";
 import { truncateAddress } from "@/lib/utils/addressFormat";
 import { type UserProfile as UserProfileType } from "@/lib/blockchain/contracts";
+import FollowerListOverlay from "./follower-list-overlay";
 
 interface ProfileMainProps {
   targetAddress?: string;
@@ -26,15 +27,23 @@ export default function ProfileMain({ targetAddress }: ProfileMainProps) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
+  // State for follower list overlay
+  const [followersList, setFollowersList] = useState<string[]>([]);
+  const [followingList, setFollowingList] = useState<string[]>([]);
+  const [showFollowersOverlay, setShowFollowersOverlay] = useState(false);
+  const [showFollowingOverlay, setShowFollowingOverlay] = useState(false);
+
   const loadFollowData = useCallback(async () => {
     if (!userAddress) return;
 
     try {
-      const followersList = await blockchainService.getFollowers(userAddress);
-      const followingList = await blockchainService.getFollowing(userAddress);
+      const followers = await blockchainService.getFollowers(userAddress);
+      const following = await blockchainService.getFollowing(userAddress);
 
-      setFollowers(followersList.length);
-      setFollowing(followingList.length);
+      setFollowersList(followers);
+      setFollowingList(following);
+      setFollowers(followers.length);
+      setFollowing(following.length);
     } catch (error) {
       console.error("Error loading follow data:", error);
     }
@@ -112,41 +121,72 @@ export default function ProfileMain({ targetAddress }: ProfileMainProps) {
   };
 
   return (
-    <div className="flex justify-around items-center p-8 gap-8">
-      {/* profile */}
-      <div className="flex gap-4 flex-col">
-        <div className="flex gap-4">
-          <div className="rounded-full h-24 w-24 bg-theme-splitter"></div>
-          <div className="flex flex-col justify-center gap-2">
-            {" "}
-            <div>
-              <h1 className="text-2xl font-bold">{userProfile?.username}</h1>
-              <p className="text-theme-primary">
-                {truncateAddress(userAddress)}
-              </p>
+    <>
+      <div className="flex justify-around items-center p-8 gap-8">
+        {/* profile */}
+        <div className="flex gap-4 flex-col">
+          <div className="flex gap-4">
+            <div className="rounded-full h-24 w-24 bg-theme-splitter"></div>
+            <div className="flex flex-col justify-center gap-2">
+              {" "}
+              <div>
+                <h1 className="text-2xl font-bold">{userProfile?.username}</h1>
+                <p className="text-theme-primary">
+                  {truncateAddress(userAddress)}
+                </p>
+              </div>
+              {targetAddress && targetAddress !== contextUserAddress && (
+                <button
+                  className={`rounded-md flex gap-2 items-center justify-center p-1 ${
+                    followLoading
+                      ? "bg-theme-secondary-muted cursor-not-allowed"
+                      : isFollowing
+                      ? "bg-theme-primary"
+                      : "bg-theme-secondary hover:bg-theme-secondary/90"
+                  }`}
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                >
+                  {isFollowing ? <Check size={16} /> : <UserPlus size={16} />}
+                  <p>{isFollowing ? "Following" : "Follow"}</p>
+                </button>
+              )}
             </div>
-            {targetAddress && targetAddress !== contextUserAddress && (
-              <button
-                className={`rounded-md flex gap-2 items-center justify-center p-1 ${
-                  followLoading
-                    ? "bg-theme-secondary-muted cursor-not-allowed"
-                    : isFollowing
-                    ? "bg-theme-primary"
-                    : "bg-theme-secondary hover:bg-theme-secondary/90"
-                }`}
-                onClick={handleFollowToggle}
-                disabled={followLoading}
-              >
-                {isFollowing ? <Check size={16} /> : <UserPlus size={16} />}
-                <p>{isFollowing ? "Following" : "Follow"}</p>
-              </button>
-            )}
           </div>
-        </div>
-        <p className="text-theme-primary">{userProfile?.bio}</p>
-      </div>{" "}
-      {/* wallet */}
-      <Wallet targetAddress={targetAddress} />
-    </div>
+          <div className="flex gap-4 items-center">
+            <button
+              onClick={() => setShowFollowersOverlay(true)}
+              className="text-theme-primary hover:underline flex items-center gap-1"
+            >
+              <span className="font-semibold">{followers}</span> followers
+            </button>
+            <button
+              onClick={() => setShowFollowingOverlay(true)}
+              className="text-theme-primary hover:underline flex items-center gap-1"
+            >
+              <span className="font-semibold">{following}</span> following
+            </button>
+          </div>
+          <p className="text-theme-primary">{userProfile?.bio}</p>
+        </div>{" "}
+        {/* wallet */}
+        <Wallet targetAddress={targetAddress} />
+      </div>
+
+      {/* Follower list overlays */}
+      <FollowerListOverlay
+        isOpen={showFollowersOverlay}
+        onClose={() => setShowFollowersOverlay(false)}
+        addresses={followersList}
+        title="Followers"
+      />
+
+      <FollowerListOverlay
+        isOpen={showFollowingOverlay}
+        onClose={() => setShowFollowingOverlay(false)}
+        addresses={followingList}
+        title="Following"
+      />
+    </>
   );
 }
