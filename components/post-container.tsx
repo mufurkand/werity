@@ -50,7 +50,7 @@ export default function PostContainer({
       setLoading(true);
       const post = await blockchainService.getPost(id);
 
-      if (!post || post.isDeleted) {
+      if (!post) {
         setPosts([]);
         return;
       }
@@ -111,10 +111,8 @@ export default function PostContainer({
           }
         })
       );
-
-      setPosts(
-        postDetails.filter((post) => post && !post.isDeleted) as PostType[]
-      );
+      console.log("Fetched user posts:", postDetails);
+      setPosts(postDetails.filter((post) => post) as PostType[]);
     } catch (error) {
       console.error("Error loading posts:", error);
     } finally {
@@ -147,7 +145,7 @@ export default function PostContainer({
       const postPromises = postIds.map(async (postId: number) => {
         try {
           const post = await blockchainService.getPost(postId);
-          if (!post || post.isDeleted) return null;
+          if (!post) return null;
 
           let isLikedByUser = false;
           if (userAddress) {
@@ -213,6 +211,7 @@ export default function PostContainer({
       return [];
     }
   };
+
   const handleLikePost = async (postId: number, alreadyLiked: boolean) => {
     if (!isConnected) {
       alert("Please login or register first");
@@ -266,6 +265,33 @@ export default function PostContainer({
     }
   };
 
+  const handleDeletePost = async (postId: number) => {
+    if (!isConnected) {
+      alert("Please login or register first");
+      return;
+    }
+
+    try {
+      setLoadingPostId(postId);
+
+      const success = await blockchainService.deletePost(postId);
+
+      if (success) {
+        // Remove the post from the UI
+        setPosts(posts.filter((post) => post.id !== postId));
+      } else {
+        alert("Failed to delete the post. Please try again.");
+      }
+    } catch (error: Error | unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("Error deleting post:", error);
+      alert(errorMessage || "Error deleting post");
+    } finally {
+      setLoadingPostId(null);
+    }
+  };
+
   const loadMorePosts = () => {
     if (showAllPosts && !loading && hasMorePosts) {
       loadAllPosts(false);
@@ -295,6 +321,9 @@ export default function PostContainer({
               post={post}
               onLike={handleLikePost}
               loading={loadingPostId === post.id}
+              onDelete={
+                post.author === userAddress ? handleDeletePost : undefined
+              }
             />
           ))}
 

@@ -1,5 +1,5 @@
 import { PostType } from "@/types/posts";
-import { ArrowBigUp, Loader, UserPlus } from "lucide-react";
+import { ArrowBigUp, Loader, Trash2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { twJoin } from "tailwind-merge";
@@ -9,9 +9,16 @@ type PostProps = {
   onLike: (postId: number, alreadyLiked: boolean) => Promise<void>;
   loading: boolean;
   isPage?: boolean;
+  onDelete?: (postId: number) => void;
 };
 
-export default function Post({ post, onLike, loading, isPage }: PostProps) {
+export default function Post({
+  post,
+  onLike,
+  loading,
+  isPage,
+  onDelete,
+}: PostProps) {
   const router = useRouter();
 
   if (!post) return null;
@@ -26,6 +33,19 @@ export default function Post({ post, onLike, loading, isPage }: PostProps) {
     e.preventDefault();
     e.stopPropagation();
     router.push(`/profile/${post.author}`);
+  }
+
+  function handleDeleteClick(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (
+      onDelete &&
+      window.confirm(
+        "Are you sure you want to delete this post? This action cannot be undone."
+      )
+    ) {
+      onDelete(post.id);
+    }
   }
 
   const content = (
@@ -45,12 +65,28 @@ export default function Post({ post, onLike, loading, isPage }: PostProps) {
               </button>
             </div>
             <UserPlus className="rounded-full p-1 bg-theme-accent" size={28} />
+            {onDelete && !post.isDeleted && (
+              <button
+                onClick={handleDeleteClick}
+                className="ml-auto"
+                title="Delete post"
+              >
+                <Trash2
+                  className="text-theme-primary hover:text-red-500"
+                  size={20}
+                />
+              </button>
+            )}
           </div>
         </div>
       </div>
       <div>
         <p>
-          {post.contentIPFS && post.contentIPFS.startsWith("ipfs://") ? (
+          {post.isDeleted ? (
+            <span className="italic text-theme-primary">
+              This post has been deleted
+            </span>
+          ) : post.contentIPFS && post.contentIPFS.startsWith("ipfs://") ? (
             // <span>View on IPFS</span>
             <div className="w-full h-24 bg-theme-splitter rounded-md"></div>
           ) : (
@@ -68,7 +104,7 @@ export default function Post({ post, onLike, loading, isPage }: PostProps) {
                 ? "bg-theme-accent text-theme-text"
                 : "bg-theme-primary-muted"
             )}
-            disabled={loading}
+            disabled={loading || post.isDeleted}
           >
             {loading ? (
               <Loader className="animate-spin" size={20} />
@@ -80,7 +116,7 @@ export default function Post({ post, onLike, loading, isPage }: PostProps) {
           <div className="p-1 px-2 rounded-full bg-theme-primary-muted">
             <p>7$</p>
           </div>
-        </div>
+        </div>{" "}
         <p className="text-theme-primary">
           {new Date(post.timestamp * 1000).toLocaleString()}
         </p>
