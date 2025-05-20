@@ -136,7 +136,6 @@ export default function CommentContainer({
       setLoadingAction(null);
     }
   };
-
   const handleLikeComment = async (
     commentId: number,
     alreadyLiked: boolean
@@ -195,6 +194,30 @@ export default function CommentContainer({
     }
   };
 
+  const handleDeleteComment = async (commentId: number) => {
+    if (!isConnected) {
+      alert("Please connect to MetaMask first");
+      return;
+    }
+
+    try {
+      setLoadingAction(`delete-comment-${commentId}`);
+      const success = await blockchainService.deleteComment(commentId);
+
+      if (success) {
+        // Remove the comment from the UI
+        setComments(comments.filter((comment) => comment.id !== commentId));
+      } else {
+        alert("Failed to delete the comment. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       {showCommentInput && (
@@ -220,8 +243,7 @@ export default function CommentContainer({
             </button>
           </div>
         </div>
-      )}
-
+      )}{" "}
       {loading ? (
         <p>Loading comments...</p>
       ) : comments.length > 0 ? (
@@ -235,7 +257,11 @@ export default function CommentContainer({
             likesCount={comment.likesCount}
             isLikedByUser={comment.isLikedByUser || false}
             onLike={handleLikeComment}
-            loading={loadingAction === `like-comment-${comment.id}`}
+            onDelete={handleDeleteComment}
+            loading={
+              loadingAction === `like-comment-${comment.id}` ||
+              loadingAction === `delete-comment-${comment.id}`
+            }
           />
         ))
       ) : (
