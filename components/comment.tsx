@@ -60,11 +60,11 @@ export default function Comment({
         {isAuthor && onDelete && (
           <button
             onClick={handleDelete}
-            className="text-theme-primary hover:text-red-500"
+            className="text-theme-primary hover:text-red-500 cursor-pointer"
             title="Delete comment"
             disabled={loading}
           >
-            <Trash2 size={18} />
+            <Trash2 size={20} />
           </button>
         )}
       </div>

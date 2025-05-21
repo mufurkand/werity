@@ -1,5 +1,5 @@
 import { PostType } from "@/types/posts";
-import { ArrowBigUp, Loader, Trash2, UserPlus } from "lucide-react";
+import { ArrowBigUp, Loader, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { twJoin } from "tailwind-merge";
@@ -64,7 +64,6 @@ export default function Post({
                 <p className="text-theme-primary">@{post.author}</p>
               </button>
             </div>
-            <UserPlus className="rounded-full p-1 bg-theme-accent" size={28} />
             {onDelete && !post.isDeleted && (
               <button
                 onClick={handleDeleteClick}
@@ -72,7 +71,7 @@ export default function Post({
                 title="Delete post"
               >
                 <Trash2
-                  className="text-theme-primary hover:text-red-500"
+                  className="text-theme-primary hover:text-red-500 cursor-pointer"
                   size={20}
                 />
               </button>

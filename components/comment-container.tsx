@@ -20,11 +20,13 @@ interface Comment {
 interface CommentContainerProps {
   showCommentInput?: boolean;
   postId?: number;
+  user?: string;
 }
 
 export default function CommentContainer({
   showCommentInput = true,
   postId,
+  user,
 }: CommentContainerProps) {
   const { isConnected, userAddress } = useBlockchain();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -85,13 +87,72 @@ export default function CommentContainer({
     }
   }, [postId, userAddress]);
 
+  const loadUserComments = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const result = await blockchainService.getCommentsByUser(user, 0, 50);
+
+      if (!result.commentIds || result.commentIds.length === 0) {
+        setComments([]);
+        return;
+      }
+
+      const commentPromises = result.commentIds.map(async (id: number) => {
+        try {
+          const comment = await blockchainService.getComment(id);
+          if (!comment) return null;
+
+          let isLikedByUser = false;
+          if (userAddress) {
+            try {
+              isLikedByUser = await blockchainService.hasLikedComment(
+                userAddress,
+                id
+              );
+            } catch (error) {
+              console.error(
+                `Error checking like status for comment ${id}:`,
+                error
+              );
+            }
+          }
+
+          return comment ? { id, ...comment, isLikedByUser } : null;
+        } catch (error) {
+          console.error(`Error loading comment ${id}:`, error);
+          return null;
+        }
+      });
+
+      const commentResults = await Promise.all(commentPromises);
+      setComments(
+        commentResults.filter(
+          (comment) => comment && !comment.isDeleted
+        ) as Comment[]
+      );
+    } catch (error) {
+      console.error("Error loading user comments:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, userAddress]);
   useEffect(() => {
     console.log("isConnected:", isConnected);
     console.log("postId:", postId);
-    if (isConnected && postId !== undefined) {
-      loadComments();
+    console.log("user:", user);
+
+    if (isConnected) {
+      if (user) {
+        // Load comments by user takes priority if both are provided
+        loadUserComments();
+      } else if (postId !== undefined) {
+        // Load comments for a specific post
+        loadComments();
+      }
     }
-  }, [isConnected, postId, loadComments]);
+  }, [isConnected, postId, user, loadComments, loadUserComments]);
 
   const handleAddComment = async () => {
     if (!isConnected) {
@@ -219,8 +280,8 @@ export default function CommentContainer({
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      {showCommentInput && (
+    <div className="flex flex-col flex-6 gap-6">
+      {showCommentInput && !user && (
         <div className="flex gap-2 items-end">
           <textarea
             className="bg-theme-primary-muted rounded-lg flex-grow resize-none h-36 p-2"
@@ -243,7 +304,8 @@ export default function CommentContainer({
             </button>
           </div>
         </div>
-      )}{" "}
+      )}
+
       {loading ? (
         <p>Loading comments...</p>
       ) : comments.length > 0 ? (
@@ -265,7 +327,7 @@ export default function CommentContainer({
           />
         ))
       ) : (
-        <p>No comments yet</p>
+        <p>{user ? `No comments from this user yet` : `No comments yet`}</p>
       )}
     </div>
   );

@@ -2,7 +2,6 @@
 
 import PostContainer from "@/components/post-container";
 import PostControls from "@/components/post-controls";
-import ProfileButtons from "@/components/profile-buttons";
 import ProfileMain from "@/components/profile-main";
 import { useBlockchain } from "@/lib/blockchain/BlockchainContext";
 import blockchainService from "@/lib/blockchain/contracts";
@@ -10,18 +9,25 @@ import { ExternalLink, LandPlot } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type UserProfile } from "@/lib/blockchain/contracts";
 import Post from "./post";
+import CommentContainer from "./comment-container";
 
 interface ProfilePageProps {
   userAddress?: string;
 }
 
 export default function ProfilePage({ userAddress }: ProfilePageProps) {
-  const { userProfile: contextUserProfile } = useBlockchain();
+  const { userProfile: contextUserProfile, userAddress: currentUserAddress } =
+    useBlockchain();
   const [externalUserProfile, setExternalUserProfile] =
     useState<UserProfile | null>(null);
+  const [viewType, setViewType] = useState<"posts" | "comments">("posts");
 
   const userProfile = userAddress ? externalUserProfile : contextUserProfile;
   const [loading, setLoading] = useState(!!userAddress);
+
+  // Use the provided userAddress or fall back to currentUserAddress
+  // This ensures comments/posts will load properly even on the static /profile route
+  const effectiveUserAddress = userAddress || currentUserAddress || "";
 
   useEffect(() => {
     console.warn("User address from props:", userAddress);
@@ -63,7 +69,6 @@ export default function ProfilePage({ userAddress }: ProfilePageProps) {
       </div>
     );
   }
-
   return (
     <div className="w-full flex flex-col">
       <ProfileMain targetAddress={userAddress} />
@@ -85,17 +90,41 @@ export default function ProfilePage({ userAddress }: ProfilePageProps) {
           <Post />
           <Post />
         </div>
-      </div>
+      </div>{" "}
       <div className="p-8 flex gap-4 items-center">
-        <ProfileButtons />
+        <div className="flex gap-2">
+          <button
+            className={`p-2 rounded-md outline outline-theme-primary ${
+              viewType === "posts" ? "bg-theme-primary text-black" : ""
+            }`}
+            onClick={() => setViewType("posts")}
+          >
+            Posts
+          </button>
+          <button
+            className={`p-2 rounded-md outline outline-theme-primary ${
+              viewType === "comments" ? "bg-theme-primary text-black" : ""
+            }`}
+            onClick={() => setViewType("comments")}
+          >
+            Comments
+          </button>
+        </div>
         <div className="w-0.5 bg-theme-splitter h-8"></div>
         <div className="flex gap-1 items-center">
           <p>Settings</p>
           <ExternalLink />
         </div>
-      </div>
+      </div>{" "}
       <div className="flex p-8 gap-4">
-        <PostContainer userId={userAddress || undefined} />
+        {viewType === "posts" ? (
+          <PostContainer userId={effectiveUserAddress || undefined} />
+        ) : (
+          <CommentContainer
+            user={effectiveUserAddress || undefined}
+            showCommentInput={false}
+          />
+        )}
         <PostControls />
         <div className="w-64 h-96 rounded-lg bg-theme-secondary-muted flex justify-center items-center">
           <LandPlot size={64} strokeWidth={1} />
