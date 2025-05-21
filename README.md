@@ -1,3 +1,23 @@
+## Features
+
+### Implemented
+
+- [x] **User Authentication**: Connect with MetaMask and register with username, profile photo, and bio
+- [x] **Profile Management**: View user profiles with personalized information
+- [x] **Social Interactions**:
+  - [x] Follow/Unfollow other users
+  - [x] View followers and following lists
+- [x] **Post Management**:
+  - [x] Create, view, and delete posts
+  - [x] Like/Unlike posts
+  - [x] View posts from specific users or view all recent posts
+- [x] **Comments**:
+  - [x] Add comments to posts
+  - [x] Like/Unlike comments
+  - [x] Delete comments
+- [x] **Content Feed**: Browse posts with pagination support
+- [x] **Navigation**: Easily navigate between profiles, posts, and other sections
+
 ## Getting Started
 
 First, run the development server:
