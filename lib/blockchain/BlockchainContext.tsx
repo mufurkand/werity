@@ -56,16 +56,13 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
         // Try to load user profile if registered
         if (address) {
           try {
-            console.log(">>inside of try");
             const profile = await blockchainService.getUserProfile(address);
             setUserProfile(profile);
           } catch (profileError) {
-            console.log(">>inside of catch");
             console.error("Error loading profile:", profileError);
             // Don't fail the connection just because profile loading failed
           }
         }
-        console.log(">>outside of try");
 
         setIsConnected(true);
         return true;

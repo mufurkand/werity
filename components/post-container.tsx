@@ -29,15 +29,12 @@ export default function PostContainer({
 
   useEffect(() => {
     if (isConnected) {
-      if (postId) {
-        console.warn("Loading single post");
+      if (postId !== undefined) {
         loadSinglePost(postId);
       } else if (showAllPosts) {
-        console.warn("Loading all posts");
         loadAllPosts(true);
       } else {
         const targetAddress = userId || userAddress;
-        console.warn("Loading user posts:", targetAddress, " userId:", userId);
         if (targetAddress) {
           loadUserPosts(targetAddress);
         }
@@ -111,7 +108,6 @@ export default function PostContainer({
           }
         })
       );
-      console.log("Fetched user posts:", postDetails);
       setPosts(postDetails.filter((post) => post) as PostType[]);
     } catch (error) {
       console.error("Error loading posts:", error);
@@ -177,8 +173,6 @@ export default function PostContainer({
       const validPosts = postResults.filter(
         (post) => post !== null
       ) as PostType[];
-
-      console.log("Fetched posts:", validPosts);
 
       if (reset) {
         setPosts(validPosts);
@@ -322,7 +316,9 @@ export default function PostContainer({
               onLike={handleLikePost}
               loading={loadingPostId === post.id}
               onDelete={
-                post.author === userAddress ? handleDeletePost : undefined
+                post.author?.toLowerCase() === userAddress?.toLowerCase()
+                  ? handleDeletePost
+                  : undefined
               }
             />
           ))}

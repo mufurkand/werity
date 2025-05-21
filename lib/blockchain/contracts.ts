@@ -23,7 +23,6 @@ const getDeploymentData = () => {
     const storedAddresses = localStorage.getItem("contract_addresses");
     if (storedAddresses) {
       const parsedAddresses = JSON.parse(storedAddresses);
-      console.log("Using contract addresses from localStorage");
       return parsedAddresses;
     }
 
@@ -32,7 +31,6 @@ const getDeploymentData = () => {
       // Using dynamic import to load the deployment file
       import("../../deployments/contracts.json")
         .then((deploymentFile) => {
-          console.log("Found deployment file, updating contract addresses");
           localStorage.setItem(
             "contract_addresses",
             JSON.stringify(deploymentFile)
@@ -56,7 +54,6 @@ const getDeploymentData = () => {
     }
 
     // If all else fails, use the hardcoded deploymentData
-    console.log("Using default contract addresses");
     return deploymentData;
   } catch (e) {
     console.warn("Error accessing localStorage:", e);
@@ -110,7 +107,7 @@ const CommentManagerABI = [
   "event CommentCreated(uint256 indexed commentId, uint256 indexed postId, address indexed author, string content, uint64 timestamp)",
   "event CommentLiked(uint256 indexed commentId, address indexed liker, uint64 timestamp)",
   "event CommentUnliked(uint256 indexed commentId, address indexed unliker, uint64 timestamp)",
-  "event CommentDeleted(uint256 indexed commentId, address indexed author, uint64 timestamp)"
+  "event CommentDeleted(uint256 indexed commentId, address indexed author, uint64 timestamp)",
 ];
 
 // Define FollowManager ABI
@@ -247,13 +244,11 @@ export class BlockchainService {
 
       // If already on the correct network, return true
       if (chainId === REQUIRED_NETWORK.chainId) {
-        console.log("Already connected to the correct network");
         return true;
       }
 
       // Try to switch to the required network
       try {
-        console.log("Switching to Hardhat network...");
         await window.ethereum.request({
           method: "wallet_switchEthereumChain",
           params: [{ chainId: REQUIRED_NETWORK.chainId }],
@@ -263,7 +258,6 @@ export class BlockchainService {
         // This error code indicates that the chain has not been added to MetaMask
         if (switchError.code === 4902) {
           try {
-            console.log("Adding Hardhat network to MetaMask...");
             await window.ethereum.request({
               method: "wallet_addEthereumChain",
               params: [
@@ -301,7 +295,6 @@ export class BlockchainService {
     try {
       // Try to get the block number
       await this.provider.getBlockNumber();
-      console.log("Successfully connected to blockchain node");
       return true;
     } catch (error) {
       console.error("Error connecting to blockchain node:", error);
@@ -377,8 +370,6 @@ export class BlockchainService {
         }
       });
 
-      console.log("Initializing contracts with addresses:", contractAddresses);
-
       // Initialize each contract with its ABI and address
       this.contracts.socialMediaManager = new ethers.Contract(
         contractAddresses.socialMediaManager,
@@ -420,10 +411,6 @@ export class BlockchainService {
         ABIs.SocialToken,
         this.signer
       );
-      console.log(
-        "Initialized SocialToken contract with address:",
-        contractAddresses.socialToken
-      );
 
       this.contracts.tokenManager = new ethers.Contract(
         contractAddresses.tokenManager,
@@ -442,8 +429,6 @@ export class BlockchainService {
         ABIs.PostMarketplace,
         this.signer
       );
-
-      console.log("Contracts initialized successfully");
     } catch (error) {
       console.error("Error initializing contracts:", error);
     }
@@ -470,8 +455,6 @@ export class BlockchainService {
 
   // Reset contract addresses in case of blockchain reset
   resetContractAddresses() {
-    console.log("Resetting contract addresses due to blockchain reset");
-
     // Clear local storage
     if (typeof window !== "undefined") {
       try {
@@ -548,9 +531,7 @@ export class BlockchainService {
         return null;
       }
 
-      console.log(">>Trying to fetch user info:", address);
       const profile = await accountManager.getProfileByAddress(address);
-      console.log(">>Fetched user info:", profile);
       return {
         username: profile.username,
         profilePhotoIPFS: profile.profilePhotoIPFS,
@@ -594,7 +575,6 @@ export class BlockchainService {
       const receipt = await tx.wait();
 
       // Extract postId from event logs
-      console.log(">>>Receipt:", receipt);
       const event = receipt.events?.find((e: any) => e.event === "PostCreated");
       const postId = event?.args?.postId.toNumber();
 
@@ -775,7 +755,6 @@ export class BlockchainService {
       }
 
       const posts = await postManager.getPostsByUser(address);
-      console.log(">>Fetched user posts:", posts);
       return posts.map((id: any) => {
         // Handle BigInt values (which don't have toNumber method)
         if (typeof id === "bigint") {
@@ -934,23 +913,22 @@ export class BlockchainService {
         gasLimit: 300000, // Comments may need more gas than likes
       });
 
-      console.log("Comment transaction sent:", tx.hash);
       const receipt = await tx.wait();
-      console.log("Comment transaction receipt:", receipt);
 
       // Extract commentId from event logs
       try {
         // Get the CommentCreated event directly from the events array
         const event = receipt.logs.find((log: any) => {
           // Check if this log's address matches our contract address
-          const contractAddress = typeof commentManager.target === 'string' 
-            ? commentManager.target.toLowerCase() 
-            : commentManager.target.toString().toLowerCase();
-          
+          const contractAddress =
+            typeof commentManager.target === "string"
+              ? commentManager.target.toLowerCase()
+              : commentManager.target.toString().toLowerCase();
+
           if (log.address.toLowerCase() !== contractAddress) {
             return false;
           }
-          
+
           // Try to decode the log's first topic (event signature)
           try {
             // CommentCreated event has 3 indexed parameters (commentId, postId, author)
@@ -958,18 +936,19 @@ export class BlockchainService {
             if (log.topics.length !== 4) {
               return false;
             }
-            
+
             // Get the event signature from our contract interface for CommentCreated
-            const commentCreatedEvent = commentManager.interface.getEvent("CommentCreated");
+            const commentCreatedEvent =
+              commentManager.interface.getEvent("CommentCreated");
             if (!commentCreatedEvent) {
               return false;
             }
-            
+
             // Get the event signature hash
             const eventSignature = ethers.id(
               `CommentCreated(uint256,uint256,address,string,uint64)`
             );
-            
+
             // Check if this log's first topic matches our event signature
             return log.topics[0] === eventSignature;
           } catch (e) {
@@ -977,22 +956,23 @@ export class BlockchainService {
           }
         });
 
-        console.log("Comment created event:", event);
-
         if (!event) {
           console.error("Comment created but event not found in receipt");
-          
-          // Fallback: If the event is not found, query for the most recent comment 
+
+          // Fallback: If the event is not found, query for the most recent comment
           // by this user for this post
-          const comments = await commentManager.getCommentsByPostId(postId, 0, 1);
+          const comments = await commentManager.getCommentsByPostId(
+            postId,
+            0,
+            1
+          );
           if (comments && comments.length > 1 && comments[1].length > 0) {
             const commentId = comments[1][0];
-            console.log("Retrieved commentId through fallback query:", commentId);
             return typeof commentId.toNumber === "function"
               ? commentId.toNumber()
               : Number(commentId);
           }
-          
+
           return null;
         }
 
@@ -1001,13 +981,12 @@ export class BlockchainService {
           // Decode the log using ethers
           const decodedData = commentManager.interface.parseLog({
             topics: event.topics,
-            data: event.data
+            data: event.data,
           });
-          
+
           // Get the commentId (first arg)
           const commentId = decodedData?.args[0];
-          console.log("Comment ID from event:", commentId);
-          
+
           return commentId
             ? typeof commentId.toNumber === "function"
               ? commentId.toNumber()
@@ -1015,16 +994,15 @@ export class BlockchainService {
             : null;
         } catch (decodeError) {
           console.error("Error decoding comment event:", decodeError);
-          
+
           // Try a simpler approach - get the comment ID from the first topic
           // The comment ID should be the second topic (index 1) after removing the 0x and converting to decimal
           const commentIdHex = event.topics[1];
           if (commentIdHex) {
             const commentId = parseInt(commentIdHex.slice(2), 16);
-            console.log("Retrieved commentId from topic:", commentId);
             return commentId;
           }
-          
+
           return null;
         }
       } catch (eventError) {
@@ -1517,7 +1495,11 @@ export class BlockchainService {
       }
 
       // Call the contract's getCommentsByUser function
-      const result = await commentManager.getCommentsByUser(userAddress, offset, limit);
+      const result = await commentManager.getCommentsByUser(
+        userAddress,
+        offset,
+        limit
+      );
 
       if (!result || !result.comments_ || !result.commentIds) {
         return { comments: [], commentIds: [] };
@@ -1525,11 +1507,20 @@ export class BlockchainService {
 
       // Format the returned comments
       const comments = result.comments_.map((comment: any) => ({
-        postId: typeof comment.postId === "object" ? comment.postId.toNumber() : Number(comment.postId),
+        postId:
+          typeof comment.postId === "object"
+            ? comment.postId.toNumber()
+            : Number(comment.postId),
         author: comment.author,
         content: comment.content,
-        timestamp: typeof comment.timestamp === "object" ? comment.timestamp.toNumber() : Number(comment.timestamp),
-        likesCount: typeof comment.likesCount === "object" ? comment.likesCount.toNumber() : Number(comment.likesCount),
+        timestamp:
+          typeof comment.timestamp === "object"
+            ? comment.timestamp.toNumber()
+            : Number(comment.timestamp),
+        likesCount:
+          typeof comment.likesCount === "object"
+            ? comment.likesCount.toNumber()
+            : Number(comment.likesCount),
         isDeleted: comment.isDeleted,
       }));
 

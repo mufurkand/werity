@@ -50,12 +50,10 @@ export default function BlockchainAuth({
   };
 
   const handleConnect = async () => {
-    console.log("Connecting to MetaMask...");
     try {
       setLoading(true);
       await connect();
       if (onLoginSuccess && userAddress) {
-        console.log("Connected address:", userAddress);
         onLoginSuccess(userAddress);
       }
     } catch (error) {

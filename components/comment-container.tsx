@@ -35,7 +35,6 @@ export default function CommentContainer({
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   const loadComments = useCallback(async () => {
-    console.log("Loading comments for post ID:", postId);
     if (postId === undefined) return;
 
     try {
@@ -139,10 +138,6 @@ export default function CommentContainer({
     }
   }, [user, userAddress]);
   useEffect(() => {
-    console.log("isConnected:", isConnected);
-    console.log("postId:", postId);
-    console.log("user:", user);
-
     if (isConnected) {
       if (user) {
         // Load comments by user takes priority if both are provided

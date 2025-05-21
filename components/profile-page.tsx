@@ -30,7 +30,6 @@ export default function ProfilePage({ userAddress }: ProfilePageProps) {
   const effectiveUserAddress = userAddress || currentUserAddress || "";
 
   useEffect(() => {
-    console.warn("User address from props:", userAddress);
     // Load user profile from the provided address if available
     if (userAddress) {
       setLoading(true);
