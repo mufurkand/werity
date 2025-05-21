@@ -1501,6 +1501,49 @@ export class BlockchainService {
       return 0;
     }
   }
+
+  async getCommentsByUser(
+    userAddress: string,
+    offset: number = 0,
+    limit: number = 50
+  ): Promise<{ comments: any[]; commentIds: number[] }> {
+    try {
+      const commentManager = this.contracts.commentManager;
+
+      // Check if commentManager is defined
+      if (!commentManager) {
+        console.error("CommentManager contract is not initialized");
+        return { comments: [], commentIds: [] };
+      }
+
+      // Call the contract's getCommentsByUser function
+      const result = await commentManager.getCommentsByUser(userAddress, offset, limit);
+
+      if (!result || !result.comments_ || !result.commentIds) {
+        return { comments: [], commentIds: [] };
+      }
+
+      // Format the returned comments
+      const comments = result.comments_.map((comment: any) => ({
+        postId: typeof comment.postId === "object" ? comment.postId.toNumber() : Number(comment.postId),
+        author: comment.author,
+        content: comment.content,
+        timestamp: typeof comment.timestamp === "object" ? comment.timestamp.toNumber() : Number(comment.timestamp),
+        likesCount: typeof comment.likesCount === "object" ? comment.likesCount.toNumber() : Number(comment.likesCount),
+        isDeleted: comment.isDeleted,
+      }));
+
+      // Format the returned comment IDs
+      const commentIds = result.commentIds.map((id: any) =>
+        typeof id.toNumber === "function" ? id.toNumber() : Number(id)
+      );
+
+      return { comments, commentIds };
+    } catch (error) {
+      console.error("Error fetching user comments:", error);
+      return { comments: [], commentIds: [] };
+    }
+  }
 }
 
 // Create a singleton instance
