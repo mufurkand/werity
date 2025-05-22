@@ -88,4 +88,53 @@ export function hashToIpfsUri(hash: string): string {
 export function ipfsUriToHash(uri: string): string {
   if (!uri) return '';
   return uri.replace('ipfs://', '');
+}
+
+/**
+ * Upload multiple media files to IPFS
+ * @param files Array of files to upload
+ * @returns Array of IPFS responses containing hashes of uploaded files
+ */
+export async function uploadMultipleToIPFS(files: File[]): Promise<IPFSUploadResponse[]> {
+  const uploadPromises = files.map(file => uploadToIPFS(file));
+  return Promise.all(uploadPromises);
+}
+
+/**
+ * Format post content with IPFS references
+ * @param text Post text content
+ * @param ipfsHashes Array of IPFS hashes to include
+ * @returns Formatted post content with text and IPFS references
+ */
+export function formatPostContent(text: string, ipfsHashes: string[]): string {
+  if (ipfsHashes.length === 0) {
+    return text;
+  }
+  
+  const ipfsReferences = ipfsHashes.map(hash => `ipfs:${hash}`).join(' ');
+  return `${text} ${ipfsReferences}`;
+}
+
+/**
+ * Extract IPFS hashes from post content
+ * @param content Post content
+ * @returns Object containing clean text and array of IPFS hashes
+ */
+export function parsePostContent(content: string): { text: string, mediaHashes: string[] } {
+  const mediaHashes: string[] = [];
+  
+  // Extract all ipfs: references
+  const ipfsRegex = /ipfs:([a-zA-Z0-9]+)/g;
+  let match;
+  
+  while ((match = ipfsRegex.exec(content)) !== null) {
+    if (match[1]) {
+      mediaHashes.push(match[1]);
+    }
+  }
+  
+  // Remove all ipfs: references from the text
+  const cleanText = content.replace(/\s*ipfs:[a-zA-Z0-9]+\s*/g, ' ').trim();
+  
+  return { text: cleanText, mediaHashes };
 } 

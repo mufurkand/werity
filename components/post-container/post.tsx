@@ -1,11 +1,12 @@
 import { PostType } from "@/types/posts";
-import { ArrowBigUp, Loader, Trash2, User } from "lucide-react";
+import { ArrowBigUp, Loader, Trash2, User, Image as ImageIcon, FileVideo } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { twJoin } from "tailwind-merge";
 import { useState, useEffect } from "react";
 import blockchainService from "@/lib/blockchain/contracts";
 import { getCachedProfile, getCachedProfileImageUrl, requestProfileImage } from "@/lib/utils/profileCache";
+import { parsePostContent, fetchIPFSImage } from "@/lib/utils/ipfsService";
 
 type PostProps = {
   post: PostType;
@@ -25,6 +26,49 @@ export default function Post({
   const router = useRouter();
   const [authorProfile, setAuthorProfile] = useState<any>(null);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [parsedContent, setParsedContent] = useState<{ text: string, mediaHashes: string[] }>({ text: '', mediaHashes: [] });
+  const [mediaUrls, setMediaUrls] = useState<(string | null)[]>([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+
+  // Parse post content to extract text and media references
+  useEffect(() => {
+    if (post?.contentIPFS) {
+      const parsed = parsePostContent(post.contentIPFS);
+      setParsedContent(parsed);
+    }
+  }, [post?.contentIPFS]);
+
+  // Load media from IPFS
+  useEffect(() => {
+    async function loadMedia() {
+      if (parsedContent.mediaHashes.length === 0) return;
+      
+      setMediaLoading(true);
+      const urls: (string | null)[] = [];
+      
+      for (const hash of parsedContent.mediaHashes) {
+        try {
+          const url = await fetchIPFSImage(hash);
+          urls.push(url);
+        } catch (error) {
+          console.warn(`Failed to load media for hash ${hash}:`, error);
+          urls.push(null);
+        }
+      }
+      
+      setMediaUrls(urls);
+      setMediaLoading(false);
+    }
+    
+    loadMedia();
+    
+    // Clean up object URLs on unmount
+    return () => {
+      mediaUrls.forEach(url => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
+  }, [parsedContent.mediaHashes]);
 
   // Fetch author profile to get their profile image using cache
   useEffect(() => {
@@ -132,18 +176,57 @@ export default function Post({
         </div>
       </div>
       <div>
-        <p>
-          {post.isDeleted ? (
-            <span className="italic text-theme-primary">
-              This post has been deleted
-            </span>
-          ) : post.contentIPFS && post.contentIPFS.startsWith("ipfs://") ? (
-            // <span>View on IPFS</span>
-            <div className="w-full h-24 bg-theme-splitter rounded-md"></div>
-          ) : (
-            post.contentIPFS || "No content"
-          )}
-        </p>
+        {/* Post text content */}
+        {post.isDeleted ? (
+          <span className="italic text-theme-primary">
+            This post has been deleted
+          </span>
+        ) : (
+          <p className="mb-3">{parsedContent.text}</p>
+        )}
+        
+        {/* Media grid */}
+        {!post.isDeleted && mediaUrls.length > 0 && (
+          <div className={`grid ${mediaUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2 mt-2`}>
+            {mediaUrls.map((url, index) => (
+              <div 
+                key={index} 
+                className={`relative rounded-md overflow-hidden ${
+                  mediaUrls.length === 1 ? 'aspect-video' : 'aspect-square'
+                } ${mediaUrls.length === 1 ? 'max-h-80' : ''}`}
+              >
+                {mediaLoading ? (
+                  <div className="w-full h-full bg-theme-splitter flex items-center justify-center">
+                    <Loader className="animate-spin" size={32} />
+                  </div>
+                ) : url ? (
+                  <img 
+                    src={url} 
+                    alt={`Media ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const fallback = document.createElement('div');
+                        fallback.className = 'w-full h-full bg-theme-splitter flex items-center justify-center';
+                        const icon = document.createElement('div');
+                        icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-theme-primary"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+                        fallback.appendChild(icon);
+                        parent.appendChild(fallback);
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-theme-splitter flex items-center justify-center">
+                    <ImageIcon size={32} className="text-theme-primary" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex items-center justify-between">
         <div className="flex gap-2 text-theme-accent">
