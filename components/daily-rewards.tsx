@@ -191,16 +191,7 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
             <p className="text-theme-primary/70 text-xs">Claim your daily tokens!</p>
           </div>
         </div>
-        {claimStreak > 0 && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="flex items-center gap-1 bg-theme-accent/20 px-2 py-1 rounded-full"
-          >
-            <Flame className="w-3 h-3 text-theme-accent" />
-            <span className="text-xs font-semibold">{claimStreak} day streak</span>
-          </motion.div>
-        )}
+        
       </div>
 
       {/* Reward Amount */}
