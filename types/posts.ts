@@ -7,3 +7,15 @@ export type PostType = {
   isDeleted: boolean;
   isLikedByUser?: boolean;
 };
+
+export type PostMedia = {
+  hash: string;
+  url: string | null;
+  type: 'image' | 'video' | 'unknown';
+};
+
+export type ParsedPostContent = {
+  text: string;
+  mediaHashes: string[];
+  media?: PostMedia[];
+};

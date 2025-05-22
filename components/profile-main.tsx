@@ -1,4 +1,4 @@
-import { UserPlus, Check } from "lucide-react";
+import { UserPlus, Check, User } from "lucide-react";
 import Wallet from "./profile-main/wallet";
 import { useBlockchain } from "@/lib/blockchain/BlockchainContext";
 import { useEffect, useState, useCallback } from "react";
@@ -6,6 +6,7 @@ import blockchainService from "@/lib/blockchain/contracts";
 import { truncateAddress } from "@/lib/utils/addressFormat";
 import { type UserProfile as UserProfileType } from "@/lib/blockchain/contracts";
 import FollowerListOverlay from "./follower-list-overlay";
+import { fetchIPFSImage, ipfsUriToHash } from "@/lib/utils/ipfsService";
 
 interface ProfileMainProps {
   targetAddress?: string;
@@ -32,6 +33,8 @@ export default function ProfileMain({ targetAddress }: ProfileMainProps) {
   const [followingList, setFollowingList] = useState<string[]>([]);
   const [showFollowersOverlay, setShowFollowersOverlay] = useState(false);
   const [showFollowingOverlay, setShowFollowingOverlay] = useState(false);
+
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   const loadFollowData = useCallback(async () => {
     if (!userAddress) return;
@@ -90,6 +93,44 @@ export default function ProfileMain({ targetAddress }: ProfileMainProps) {
     }
   }, [targetAddress, contextUserAddress]);
 
+  // Function to load and prepare profile image from IPFS
+  useEffect(() => {
+    async function loadProfileImage() {
+      if (!userProfile?.profilePhotoIPFS) {
+        setProfileImageUrl(null);
+        return;
+      }
+
+      try {
+        const hash = ipfsUriToHash(userProfile.profilePhotoIPFS);
+        if (hash && hash !== 'default') {
+          // Use async fetchIPFSImage to get a data URL
+          const imageUrl = await fetchIPFSImage(hash);
+          // Only set if imageUrl is not null
+          if (imageUrl) {
+            setProfileImageUrl(imageUrl);
+          } else {
+            setProfileImageUrl(null);
+          }
+        } else {
+          setProfileImageUrl(null);
+        }
+      } catch (error) {
+        console.error('Error fetching profile image:', error);
+        setProfileImageUrl(null);
+      }
+    }
+
+    loadProfileImage();
+
+    // Clean up the object URL when component unmounts or profile changes
+    return () => {
+      if (profileImageUrl) {
+        URL.revokeObjectURL(profileImageUrl);
+      }
+    };
+  }, [userProfile]);
+
   const handleFollowToggle = async () => {
     if (
       !targetAddress ||
@@ -126,7 +167,18 @@ export default function ProfileMain({ targetAddress }: ProfileMainProps) {
         {/* profile */}
         <div className="flex gap-4 flex-col">
           <div className="flex gap-4">
-            <div className="rounded-full h-24 w-24 bg-theme-splitter"></div>
+            {profileImageUrl ? (
+              <img 
+                src={profileImageUrl} 
+                alt={`${userProfile?.username}'s profile`}
+                className="rounded-full h-24 w-24 object-cover" 
+                onError={() => setProfileImageUrl(null)}
+              />
+            ) : (
+              <div className="rounded-full h-24 w-24 bg-theme-splitter flex items-center justify-center">
+                <User size={40} className="text-theme-primary" />
+              </div>
+            )}
             <div className="flex flex-col justify-center gap-2">
               {" "}
               <div>
