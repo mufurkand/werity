@@ -37,16 +37,17 @@ export async function uploadToIPFS(file: File): Promise<IPFSUploadResponse> {
 /**
  * Get a data URL for an image stored in IPFS
  * @param hash IPFS hash
- * @returns Promise that resolves to a data URL for the image
+ * @returns Promise that resolves to a data URL for the image, or null if fetch fails
  */
-export async function fetchIPFSImage(hash: string): Promise<string> {
+export async function fetchIPFSImage(hash: string): Promise<string | null> {
   try {
     const response = await fetch(`http://localhost:5001/api/v0/cat?arg=${hash}`, {
       method: 'POST',
     });
 
     if (!response.ok) {
-      throw new Error(`IPFS fetch failed: ${response.statusText}`);
+      console.warn(`IPFS fetch failed for hash ${hash}: ${response.statusText}`);
+      return null;
     }
 
     // Get the binary data
@@ -55,8 +56,8 @@ export async function fetchIPFSImage(hash: string): Promise<string> {
     // Convert to data URL
     return URL.createObjectURL(blob);
   } catch (error) {
-    console.error('Error fetching from IPFS:', error);
-    throw error;
+    console.warn('Error fetching from IPFS:', error);
+    return null;
   }
 }
 

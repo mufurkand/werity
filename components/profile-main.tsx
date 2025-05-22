@@ -106,7 +106,12 @@ export default function ProfileMain({ targetAddress }: ProfileMainProps) {
         if (hash && hash !== 'default') {
           // Use async fetchIPFSImage to get a data URL
           const imageUrl = await fetchIPFSImage(hash);
-          setProfileImageUrl(imageUrl);
+          // Only set if imageUrl is not null
+          if (imageUrl) {
+            setProfileImageUrl(imageUrl);
+          } else {
+            setProfileImageUrl(null);
+          }
         } else {
           setProfileImageUrl(null);
         }

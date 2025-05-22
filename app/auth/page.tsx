@@ -243,7 +243,7 @@ export default function BlockchainAuth({
                   <Image size={32} className="text-theme-secondary" />
                 </div>
               )}
-              <input
+            <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleImageChange}

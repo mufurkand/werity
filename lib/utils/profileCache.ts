@@ -7,7 +7,7 @@ import { fetchIPFSImage, ipfsUriToHash } from "./ipfsService";
 // In-memory cache for profiles
 const profileCache: Record<string, any> = {};
 const profileImageCache: Record<string, string | null> = {};
-const profileImageLoadingPromises: Record<string, Promise<string>> = {};
+const profileImageLoadingPromises: Record<string, Promise<string | null>> = {};
 
 // Cache expiration time in milliseconds (5 minutes)
 const CACHE_TTL = 5 * 60 * 1000;
@@ -77,7 +77,13 @@ async function loadProfileImage(address: string, ipfsUri: string): Promise<void>
     
     // Await the result and cache it
     const imageUrl = await profileImageLoadingPromises[address];
-    profileImageCache[address] = imageUrl;
+    
+    // Check if imageUrl is null (fetch failed)
+    if (imageUrl === null) {
+      profileImageCache[address] = null;
+    } else {
+      profileImageCache[address] = imageUrl;
+    }
     
     // Clean up loading promise
     delete profileImageLoadingPromises[address];
