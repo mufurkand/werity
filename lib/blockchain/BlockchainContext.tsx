@@ -8,6 +8,7 @@ import React, {
   ReactNode,
 } from "react";
 import blockchainService, { ContractAddresses, UserProfile } from "./contracts";
+import LandingPage from "@/components/landing-page";
 
 // Add ethereum to window type
 declare global {
@@ -161,7 +162,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
 
   return (
     <BlockchainContext.Provider value={value}>
-      {children}
+      {isConnected ? children : <LandingPage />}
     </BlockchainContext.Provider>
   );
 }
