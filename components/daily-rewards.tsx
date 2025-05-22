@@ -133,7 +133,7 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-4 text-white shadow-xl w-full max-w-sm"
+      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-theme-secondary to-theme-secondary-muted border border-theme-splitter/20 p-4 text-theme-text shadow-xl w-full max-w-sm"
     >
       {/* Confetti Animation */}
       <AnimatePresence>
@@ -164,7 +164,7 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
                   delay: Math.random() * 0.5,
                   ease: "easeOut"
                 }}
-                className="absolute w-2 h-2 bg-yellow-300 rounded-full"
+                className="absolute w-2 h-2 bg-theme-accent rounded-full"
                 style={{ left: `${Math.random() * 100}%` }}
               />
             ))}
@@ -173,8 +173,8 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
       </AnimatePresence>
 
       {/* Background decoration */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -translate-y-16 translate-x-16" />
-      <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-5 rounded-full translate-y-12 -translate-x-12" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-theme-accent opacity-5 rounded-full -translate-y-16 translate-x-16" />
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-theme-accent opacity-5 rounded-full translate-y-12 -translate-x-12" />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
@@ -182,22 +182,22 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
           <motion.div
             animate={{ rotate: canClaim ? [0, 10, -10, 0] : 0 }}
             transition={{ duration: 0.5, repeat: canClaim ? Infinity : 0, repeatDelay: 2 }}
-            className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm"
+            className="p-1.5 bg-theme-accent/20 rounded-lg backdrop-blur-sm"
           >
-            <Gift className="w-5 h-5 text-yellow-300" />
+            <Gift className="w-5 h-5 text-theme-accent" />
           </motion.div>
           <div>
-            <h3 className="text-base font-bold">Daily Rewards</h3>
-            <p className="text-purple-200 text-xs">Claim your daily tokens!</p>
+            <h3 className="text-base font-bold text-theme-text">Daily Rewards</h3>
+            <p className="text-theme-primary/70 text-xs">Claim your daily tokens!</p>
           </div>
         </div>
         {claimStreak > 0 && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="flex items-center gap-1 bg-orange-500/20 px-2 py-1 rounded-full"
+            className="flex items-center gap-1 bg-theme-accent/20 px-2 py-1 rounded-full"
           >
-            <Flame className="w-3 h-3 text-orange-300" />
+            <Flame className="w-3 h-3 text-theme-accent" />
             <span className="text-xs font-semibold">{claimStreak} day streak</span>
           </motion.div>
         )}
@@ -211,11 +211,11 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
         transition={{ duration: 0.3 }}
       >
         <div className="flex items-center justify-center gap-2 mb-1">
-          <Coins className="w-6 h-6 text-yellow-300" />
-          <span className="text-2xl font-bold text-yellow-300">{rewardAmount}</span>
-          <span className="text-sm text-purple-200">SOCIAL</span>
+          <Coins className="w-6 h-6 text-theme-accent" />
+          <span className="text-2xl font-bold text-theme-accent">{rewardAmount}</span>
+          <span className="text-sm text-theme-primary/70">SOCIAL</span>
         </div>
-        <p className="text-purple-200 text-xs">Daily reward amount</p>
+        <p className="text-theme-primary/70 text-xs">Daily reward amount</p>
       </motion.div>
 
       {/* Claim Button or Timer */}
@@ -226,14 +226,14 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
             disabled={isClaiming}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-purple-900 font-bold py-3 px-4 rounded-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+            className="w-full bg-gradient-to-r from-theme-accent to-theme-accent/80 text-theme-bg font-bold py-3 px-4 rounded-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
           >
             {isClaiming ? (
               <>
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-5 h-5 border-2 border-purple-900 border-t-transparent rounded-full"
+                  className="w-5 h-5 border-2 border-theme-bg border-t-transparent rounded-full"
                 />
                 Claiming...
               </>
@@ -247,8 +247,8 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
         ) : (
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Clock className="w-5 h-5 text-purple-200" />
-              <span className="text-purple-200">Next claim in:</span>
+              <Clock className="w-5 h-5 text-theme-primary/70" />
+              <span className="text-theme-primary/70">Next claim in:</span>
             </div>
             {hasInitialData ? (
               <div className="flex justify-center gap-1">
@@ -257,10 +257,10 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
                     key={unit}
                     initial={{ scale: 0.9 }}
                     animate={{ scale: 1 }}
-                    className="bg-white/10 backdrop-blur-sm rounded-lg p-2 min-w-[45px]"
+                    className="bg-theme-secondary-muted/50 backdrop-blur-sm rounded-lg p-2 min-w-[45px]"
                   >
-                    <div className="text-lg font-bold text-center">{value}</div>
-                    <div className="text-xs text-purple-200 text-center uppercase">{unit.slice(0, 1)}</div>
+                    <div className="text-lg font-bold text-center text-theme-text">{value}</div>
+                    <div className="text-xs text-theme-primary/70 text-center uppercase">{unit.slice(0, 1)}</div>
                   </motion.div>
                 ))}
               </div>
@@ -269,10 +269,10 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
                 {['H', 'M', 'S'].map((unit) => (
                   <div
                     key={unit}
-                    className="bg-white/10 backdrop-blur-sm rounded-lg p-2 min-w-[45px] animate-pulse"
+                    className="bg-theme-secondary-muted/50 backdrop-blur-sm rounded-lg p-2 min-w-[45px] animate-pulse"
                   >
-                    <div className="text-lg font-bold text-center">--</div>
-                    <div className="text-xs text-purple-200 text-center uppercase">{unit}</div>
+                    <div className="text-lg font-bold text-center text-theme-text">--</div>
+                    <div className="text-xs text-theme-primary/70 text-center uppercase">{unit}</div>
                   </div>
                 ))}
               </div>
@@ -282,23 +282,23 @@ export function DailyRewards({ onRewardClaimed }: DailyRewardsProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/20">
+      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-theme-splitter/20">
         <div className="text-center">
-          <div className="text-lg font-bold text-yellow-300">{parseFloat(totalClaimed).toFixed(0)}</div>
-          <div className="text-xs text-purple-200">Total Claimed</div>
+          <div className="text-lg font-bold text-theme-accent">{parseFloat(totalClaimed).toFixed(0)}</div>
+          <div className="text-xs text-theme-primary/70">Total Claimed</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold text-yellow-300">{claimStreak}</div>
-          <div className="text-xs text-purple-200">Streak Days</div>
+          <div className="text-lg font-bold text-theme-accent">{claimStreak}</div>
+          <div className="text-xs text-theme-primary/70">Streak Days</div>
         </div>
       </div>
 
       {isLoading && (
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center rounded-xl">
+        <div className="absolute inset-0 bg-theme-secondary/20 backdrop-blur-sm flex items-center justify-center rounded-xl">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-8 h-8 border-2 border-white border-t-transparent rounded-full"
+            className="w-8 h-8 border-2 border-theme-accent border-t-transparent rounded-full"
           />
         </div>
       )}
