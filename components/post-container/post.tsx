@@ -1,8 +1,11 @@
 import { PostType } from "@/types/posts";
-import { ArrowBigUp, Loader, Trash2 } from "lucide-react";
+import { ArrowBigUp, Loader, Trash2, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { twJoin } from "tailwind-merge";
+import { useState, useEffect } from "react";
+import blockchainService from "@/lib/blockchain/contracts";
+import { getCachedProfile, getCachedProfileImageUrl, requestProfileImage } from "@/lib/utils/profileCache";
 
 type PostProps = {
   post: PostType;
@@ -20,6 +23,45 @@ export default function Post({
   onDelete,
 }: PostProps) {
   const router = useRouter();
+  const [authorProfile, setAuthorProfile] = useState<any>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+
+  // Fetch author profile to get their profile image using cache
+  useEffect(() => {
+    async function fetchProfile() {
+      if (!post?.author) return;
+      
+      try {
+        const profile = await getCachedProfile(post.author, () => {
+          return blockchainService.getUserProfile(post.author);
+        });
+        
+        setAuthorProfile(profile);
+        
+        // Get image URL from cache or trigger fetch if needed
+        if (profile?.profilePhotoIPFS) {
+          await requestProfileImage(post.author, profile.profilePhotoIPFS);
+          setProfileImageUrl(getCachedProfileImageUrl(post.author));
+        }
+      } catch (error) {
+        console.error("Error fetching author profile:", error);
+      }
+    }
+    
+    fetchProfile();
+    
+    // Set up periodic check for image URL
+    const checkImageInterval = setInterval(() => {
+      if (post?.author) {
+        const cachedImageUrl = getCachedProfileImageUrl(post.author);
+        if (cachedImageUrl && cachedImageUrl !== profileImageUrl) {
+          setProfileImageUrl(cachedImageUrl);
+        }
+      }
+    }, 500);
+    
+    return () => clearInterval(checkImageInterval);
+  }, [post?.author, profileImageUrl]);
 
   if (!post) return null;
 
@@ -53,15 +95,25 @@ export default function Post({
       <div>
         <div>
           <div className="flex items-center gap-4">
-            {" "}
-            <div className="rounded-full w-12 h-12 bg-theme-splitter"></div>
+            {profileImageUrl ? (
+              <img 
+                src={profileImageUrl} 
+                alt={`${authorProfile?.username || 'Author'}'s profile`}
+                className="rounded-full w-12 h-12 object-cover"
+                onError={() => setProfileImageUrl(null)}
+              />
+            ) : (
+              <div className="rounded-full w-12 h-12 bg-theme-splitter flex items-center justify-center">
+                <User size={24} className="text-theme-primary" />
+              </div>
+            )}
             <div>
               <button
                 onClick={handleProfileClick}
                 className="text-left hover:underline"
               >
-                <p>{post.author}</p>
-                <p className="text-theme-primary">@{post.author}</p>
+                <p>{authorProfile?.username || post.author}</p>
+                <p className="text-theme-primary">@{post.author.substring(0, 6)}...{post.author.substring(post.author.length - 4)}</p>
               </button>
             </div>
             {onDelete && !post.isDeleted && (

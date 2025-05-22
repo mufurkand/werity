@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { twJoin } from "tailwind-merge";
 import Link from "next/link";
 import { useBlockchain } from "@/lib/blockchain/BlockchainContext";
+import { fetchIPFSImage, ipfsUriToHash } from "@/lib/utils/ipfsService";
 
 interface NavDropdownLinkProps {
   href: string;
@@ -29,6 +30,39 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { userProfile } = useBlockchain();
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadProfileImage() {
+      if (!userProfile?.profilePhotoIPFS) {
+        setProfileImageUrl(null);
+        return;
+      }
+
+      try {
+        const hash = ipfsUriToHash(userProfile.profilePhotoIPFS);
+        if (hash && hash !== 'default') {
+          // Use async fetchIPFSImage to get a data URL
+          const imageUrl = await fetchIPFSImage(hash);
+          setProfileImageUrl(imageUrl);
+        } else {
+          setProfileImageUrl(null);
+        }
+      } catch (error) {
+        console.error('Error fetching profile image:', error);
+        setProfileImageUrl(null);
+      }
+    }
+
+    loadProfileImage();
+
+    // Clean up the object URL when component unmounts or profile changes
+    return () => {
+      if (profileImageUrl) {
+        URL.revokeObjectURL(profileImageUrl);
+      }
+    };
+  }, [userProfile]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -62,9 +96,18 @@ export default function Navbar() {
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setOpen((prev) => !prev)}
-            className="flex p-2 px-4 gap-2 bg-theme-secondary transition-all duration-75 rounded-md"
+            className="flex p-2 px-4 gap-2 bg-theme-secondary transition-all duration-75 rounded-md items-center"
           >
-            <User />
+            {profileImageUrl ? (
+              <img 
+                src={profileImageUrl} 
+                alt="Profile" 
+                className="rounded-full h-6 w-6 object-cover"
+                onError={() => setProfileImageUrl(null)}
+              />
+            ) : (
+              <User />
+            )}
             <p>
               {userProfile && userProfile.exists
                 ? userProfile.username

@@ -1,7 +1,10 @@
-import { ArrowBigUp, Loader, Trash2 } from "lucide-react";
+import { ArrowBigUp, Loader, Trash2, User } from "lucide-react";
 import { twJoin } from "tailwind-merge";
 import Link from "next/link";
 import { useBlockchain } from "@/lib/blockchain/BlockchainContext";
+import { useState, useEffect } from "react";
+import blockchainService from "@/lib/blockchain/contracts";
+import { getCachedProfile, getCachedProfileImageUrl, requestProfileImage } from "@/lib/utils/profileCache";
 
 interface CommentProps {
   id: number;
@@ -28,6 +31,45 @@ export default function Comment({
 }: CommentProps) {
   const { userAddress } = useBlockchain();
   const isAuthor = userAddress?.toLowerCase() === author?.toLowerCase();
+  const [authorProfile, setAuthorProfile] = useState<any>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+
+  // Fetch commenter profile to get their profile image using cache
+  useEffect(() => {
+    async function fetchProfile() {
+      if (!author) return;
+      
+      try {
+        const profile = await getCachedProfile(author, () => {
+          return blockchainService.getUserProfile(author);
+        });
+        
+        setAuthorProfile(profile);
+        
+        // Get image URL from cache or trigger fetch if needed
+        if (profile?.profilePhotoIPFS) {
+          await requestProfileImage(author, profile.profilePhotoIPFS);
+          setProfileImageUrl(getCachedProfileImageUrl(author));
+        }
+      } catch (error) {
+        console.error("Error fetching commenter profile:", error);
+      }
+    }
+    
+    fetchProfile();
+    
+    // Set up periodic check for image URL
+    const checkImageInterval = setInterval(() => {
+      if (author) {
+        const cachedImageUrl = getCachedProfileImageUrl(author);
+        if (cachedImageUrl && cachedImageUrl !== profileImageUrl) {
+          setProfileImageUrl(cachedImageUrl);
+        }
+      }
+    }, 500);
+    
+    return () => clearInterval(checkImageInterval);
+  }, [author, profileImageUrl]);
 
   const handleDelete = () => {
     if (onDelete && !loading && isAuthor) {
@@ -45,11 +87,22 @@ export default function Comment({
     <div className="flex flex-col gap-2">
       <div className="flex gap-2 items-center justify-between">
         <div className="flex gap-2 items-center">
-          <div className="rounded-full bg-theme-splitter w-10 h-10"></div>
+          {profileImageUrl ? (
+            <img 
+              src={profileImageUrl} 
+              alt={`${authorProfile?.username || 'Author'}'s profile`}
+              className="rounded-full w-10 h-10 object-cover"
+              onError={() => setProfileImageUrl(null)}
+            />
+          ) : (
+            <div className="rounded-full bg-theme-splitter w-10 h-10 flex items-center justify-center">
+              <User size={20} className="text-theme-primary" />
+            </div>
+          )}
           <div>
             <Link href={`/profile/${author}`} className="hover:underline">
               <p className="font-bold">
-                {author.slice(0, 6)}...{author.slice(-4)}
+                {authorProfile?.username || `${author.slice(0, 6)}...${author.slice(-4)}`}
               </p>
             </Link>
             <p className="text-theme-primary">

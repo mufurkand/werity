@@ -179,10 +179,27 @@ export default function CommentContainer({
         // Get the new comment and add it to state
         const newComment = await blockchainService.getComment(commentId);
         if (newComment) {
-          setComments([...comments, { id: commentId, ...newComment }]);
+          setComments([...comments, { id: commentId, ...newComment, isLikedByUser: false }]);
         } else {
-          // If we couldn't fetch the new comment, reload all comments
-          await loadComments();
+          // If we couldn't fetch the new comment, create a locally constructed comment
+          // This is particularly useful for the first comment by new users
+          const localComment: Comment = {
+            id: commentId,
+            postId: postId,
+            author: userAddress || "",
+            content: commentContent,
+            timestamp: Math.floor(Date.now() / 1000), // Current timestamp in seconds
+            likesCount: 0,
+            isDeleted: false,
+            isLikedByUser: false
+          };
+          
+          setComments([...comments, localComment]);
+          
+          // Also trigger a reload after a slight delay to ensure data consistency
+          setTimeout(() => {
+            loadComments();
+          }, 2000);
         }
       }
     } catch (error) {

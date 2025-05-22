@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, ChangeEvent, FormEvent, useEffect } from "react";
+import React, { useState, ChangeEvent, FormEvent, useEffect, useRef } from "react";
 import { useBlockchain } from "@/lib/blockchain/BlockchainContext";
 import blockchainService from "@/lib/blockchain/contracts";
 import { twJoin } from "tailwind-merge";
-import { Loader } from "lucide-react";
+import { Image, Loader, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { uploadToIPFS, hashToIpfsUri } from "@/lib/utils/ipfsService";
 
 type BlockchainAuthProps = {
   onLoginSuccess?: (address: string) => void;
@@ -24,6 +25,10 @@ export default function BlockchainAuth({
 }: BlockchainAuthProps) {
   const { isConnected, userAddress, userProfile, connect } = useBlockchain();
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<FormDataType>({
     username: "",
     profilePhotoIPFS: "",
@@ -49,6 +54,37 @@ export default function BlockchainAuth({
     setFormData((prev: FormDataType) => ({ ...prev, [name]: value }));
   };
 
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedImage(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleImageUpload = async () => {
+    if (!selectedImage) return;
+
+    try {
+      setUploadingImage(true);
+      const response = await uploadToIPFS(selectedImage);
+      const ipfsUri = hashToIpfsUri(response.Hash);
+      
+      setFormData((prev) => ({ ...prev, profilePhotoIPFS: ipfsUri }));
+      return ipfsUri;
+    } catch (error) {
+      console.error("Failed to upload image to IPFS:", error);
+      alert("Failed to upload image. Please try again.");
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleConnect = async () => {
     try {
       setLoading(true);
@@ -72,11 +108,20 @@ export default function BlockchainAuth({
 
     try {
       setLoading(true);
-      const { username, profilePhotoIPFS, bio } = formData;
+      const { username, bio } = formData;
+      let { profilePhotoIPFS } = formData;
 
       if (!username) {
         alert("Username is required");
         return;
+      }
+
+      // Upload image if selected but not yet uploaded
+      if (selectedImage && !profilePhotoIPFS) {
+        const ipfsUri = await handleImageUpload();
+        if (ipfsUri) {
+          profilePhotoIPFS = ipfsUri;
+        }
       }
 
       // Call blockchain service to register user
@@ -172,16 +217,67 @@ export default function BlockchainAuth({
 
           <div className="space-y-2">
             <label className="block text-theme-primary font-medium">
-              Profile Photo IPFS URI
+              Profile Picture
             </label>
-            <input
-              type="text"
-              name="profilePhotoIPFS"
-              value={formData.profilePhotoIPFS}
-              onChange={handleChange}
-              placeholder="ipfs://... (optional)"
-              className="w-full p-2 border border-theme-secondary-muted rounded-md bg-theme-bg text-theme-primary focus:outline-none focus:ring-2 focus:ring-theme-accent"
-            />
+            <div className="flex flex-col items-center justify-center">
+              {previewUrl ? (
+                <div className="relative w-32 h-32 mb-2">
+                  <img
+                    src={previewUrl}
+                    alt="Profile preview"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                  <button
+                    type="button"
+                    onClick={triggerFileInput}
+                    className="absolute bottom-0 right-0 bg-theme-accent text-theme-bg p-1 rounded-full"
+                  >
+                    <Upload size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={triggerFileInput}
+                  className="w-32 h-32 border-2 border-dashed border-theme-secondary rounded-full flex items-center justify-center cursor-pointer mb-2"
+                >
+                  <Image size={32} className="text-theme-secondary" />
+                </div>
+              )}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                accept="image/*"
+                className="hidden"
+              />
+              {selectedImage && !formData.profilePhotoIPFS && (
+                <button
+                  type="button"
+                  onClick={handleImageUpload}
+                  disabled={uploadingImage}
+                  className={twJoin(
+                    "text-sm py-1 px-3 rounded-md font-medium transition-colors",
+                    uploadingImage
+                      ? "bg-theme-secondary-muted text-theme-primary cursor-not-allowed"
+                      : "bg-theme-accent text-theme-bg hover:bg-theme-accent/90"
+                  )}
+                >
+                  {uploadingImage ? (
+                    <span className="flex items-center gap-1">
+                      <Loader size={12} className="animate-spin" />
+                      Uploading...
+                    </span>
+                  ) : (
+                    "Upload to IPFS"
+                  )}
+                </button>
+              )}
+              {formData.profilePhotoIPFS && (
+                <p className="text-xs text-theme-primary mt-1 break-all">
+                  {formData.profilePhotoIPFS}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
