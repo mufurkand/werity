@@ -24,7 +24,8 @@ interface BlockchainContextType {
   userProfile: UserProfile | null;
   contractAddresses: Partial<ContractAddresses>;
   error: string | null;
-  connect: () => Promise<boolean>;
+  connect: (skipUserRequest?: boolean) => Promise<boolean>;
+  disconnect: () => void;
   updateContractAddresses: (addresses: Partial<ContractAddresses>) => void;
 }
 
@@ -34,7 +35,7 @@ const BlockchainContext = createContext<BlockchainContextType | undefined>(
 
 export function BlockchainProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true); // Start as true to check for existing connection
   const [userAddress, setUserAddress] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [contractAddresses, setContractAddresses] = useState<
@@ -42,13 +43,38 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
   >({});
   const [error, setError] = useState<string | null>(null);
 
+  // Save connection state to localStorage
+  const saveConnectionState = (connected: boolean, address: string | null) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("blockchain_connected", connected.toString());
+      if (address) {
+        localStorage.setItem("blockchain_address", address);
+      } else {
+        localStorage.removeItem("blockchain_address");
+      }
+    }
+  };
+
+  // Get connection state from localStorage
+  const getSavedConnectionState = () => {
+    if (typeof window !== "undefined") {
+      const connected = localStorage.getItem("blockchain_connected") === "true";
+      const address = localStorage.getItem("blockchain_address");
+      return { connected, address };
+    }
+    return { connected: false, address: null };
+  };
+
   // Initialize blockchain service
-  const connect = async (): Promise<boolean> => {
+  const connect = async (skipUserRequest = false): Promise<boolean> => {
     try {
       setIsInitializing(true);
       setError(null);
 
-      const result = await blockchainService.init();
+      // If skipUserRequest is true, try to connect silently without requesting accounts
+      const result = skipUserRequest 
+        ? await blockchainService.initSilently()
+        : await blockchainService.init();
 
       if (result) {
         const address = blockchainService.getUserAddress();
@@ -66,10 +92,12 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
         }
 
         setIsConnected(true);
+        saveConnectionState(true, address);
         return true;
       } else {
         setError("Failed to connect to blockchain");
         setIsConnected(false);
+        saveConnectionState(false, null);
         return false;
       }
     } catch (err: any) {
@@ -100,10 +128,20 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
 
       setError(errorMessage);
       setIsConnected(false);
+      saveConnectionState(false, null);
       return false;
     } finally {
       setIsInitializing(false);
     }
+  };
+
+  // Disconnect function
+  const disconnect = () => {
+    setIsConnected(false);
+    setUserAddress(null);
+    setUserProfile(null);
+    setError(null);
+    saveConnectionState(false, null);
   };
 
   // Update contract addresses
@@ -115,6 +153,35 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  // Auto-reconnection on app load
+  useEffect(() => {
+    const tryAutoReconnect = async () => {
+      try {
+        const { connected } = getSavedConnectionState();
+        
+        if (connected) {
+          console.log("Attempting auto-reconnection...");
+          const success = await connect(true); // Silent connection
+          if (!success) {
+            console.log("Auto-reconnection failed, user needs to connect manually");
+            saveConnectionState(false, null);
+          } else {
+            console.log("Auto-reconnection successful");
+          }
+        } else {
+          console.log("No previous connection found");
+        }
+      } catch (error) {
+        console.error("Error during auto-reconnection:", error);
+        saveConnectionState(false, null);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    tryAutoReconnect();
+  }, []); // Only run on mount
+
   // Setup event listeners for account changes
   useEffect(() => {
     if (typeof window !== "undefined" && window.ethereum) {
@@ -123,8 +190,10 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
           setIsConnected(false);
           setUserAddress(null);
           setUserProfile(null);
+          saveConnectionState(false, null);
         } else if (accounts[0] !== userAddress) {
           setUserAddress(accounts[0]);
+          saveConnectionState(true, accounts[0]);
 
           // Load profile for new address
           try {
@@ -137,7 +206,16 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
         }
       };
 
+      const handleDisconnect = () => {
+        console.log("MetaMask disconnected");
+        setIsConnected(false);
+        setUserAddress(null);
+        setUserProfile(null);
+        saveConnectionState(false, null);
+      };
+
       window.ethereum.on("accountsChanged", handleAccountsChanged);
+      window.ethereum.on("disconnect", handleDisconnect);
 
       // Cleanup
       return () => {
@@ -145,6 +223,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
           "accountsChanged",
           handleAccountsChanged
         );
+        window.ethereum.removeListener("disconnect", handleDisconnect);
       };
     }
   }, [userAddress]);
@@ -157,6 +236,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
     contractAddresses,
     error,
     connect,
+    disconnect,
     updateContractAddresses,
   };
 

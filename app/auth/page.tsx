@@ -23,7 +23,7 @@ export default function BlockchainAuth({
   onLoginSuccess,
   onRegisterSuccess,
 }: BlockchainAuthProps) {
-  const { isConnected, userAddress, userProfile, connect } = useBlockchain();
+  const { isConnected, userAddress, userProfile, connect, isInitializing } = useBlockchain();
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -98,6 +98,21 @@ export default function BlockchainAuth({
       setLoading(false);
     }
   };
+
+  // Show loading state while checking for existing session
+  if (isInitializing) {
+    return (
+      <div className="flex h-[calc(100vh-3.5rem)] flex-col items-center justify-center p-4">
+        <div className="bg-theme-secondary-muted rounded-lg p-6 w-full max-w-md shadow-lg animate-pulse">
+          <div className="h-6 bg-theme-splitter rounded w-32 mb-4"></div>
+          <div className="space-y-4">
+            <div className="h-10 bg-theme-splitter rounded w-full"></div>
+            <div className="h-4 bg-theme-splitter rounded w-48"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();

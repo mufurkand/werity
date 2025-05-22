@@ -2,63 +2,21 @@ import { ethers } from "ethers";
 
 // Load deployment data from JSON
 const deploymentData = {
-  accountManager: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  postManager: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-  commentManager: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-  followManager: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-  moderationManager: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-  socialToken: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
-  tokenManager: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
-  postNFT: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
-  postMarketplace: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-  socialMediaManager: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    accountManager: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    postManager: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    commentManager: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    followManager: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    moderationManager: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+    socialToken: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+    tokenManager: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+    postNFT: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+    dailyRewards: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+    socialMediaManager: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318"
 };
 
-// This function helps detect and adapt to redeployed contracts
+// Simple function to get deployment data
 const getDeploymentData = () => {
-  if (typeof window === "undefined") return deploymentData;
-
-  try {
-    // First, try to load from localStorage (has highest priority)
-    const storedAddresses = localStorage.getItem("contract_addresses");
-    if (storedAddresses) {
-      const parsedAddresses = JSON.parse(storedAddresses);
-      return parsedAddresses;
-    }
-
-    // Second, try to load from deployments file
-    try {
-      // Using dynamic import to load the deployment file
-      import("../../deployments/contracts.json")
-        .then((deploymentFile) => {
-          localStorage.setItem(
-            "contract_addresses",
-            JSON.stringify(deploymentFile)
-          );
-          // We need to reload to use the new addresses
-          window.location.reload();
-        })
-        .catch((err) => {
-          console.warn(
-            "No deployment file found, using default addresses",
-            err
-          );
-          // If no deployment file, use the default addresses
-          localStorage.setItem(
-            "contract_addresses",
-            JSON.stringify(deploymentData)
-          );
-        });
-    } catch (importError) {
-      console.warn("Error importing deployment file:", importError);
-    }
-
-    // If all else fails, use the hardcoded deploymentData
-    return deploymentData;
-  } catch (e) {
-    console.warn("Error accessing localStorage:", e);
-    return deploymentData;
-  }
+  return deploymentData;
 };
 
 // Define required network
@@ -83,13 +41,24 @@ const AccountManagerABI = [
 const PostManagerABI = [
   "function createPost(string calldata _contentIPFS) external returns (uint256)",
   "function getPostsByUser(address _userAddress) external view returns (uint256[])",
-  "function getPostById(uint256 _postId) external view returns (tuple(address author, string contentIPFS, uint64 timestamp, uint32 likesCount, bool isDeleted))",
+  "function getPostById(uint256 _postId) external view returns (tuple(address author, string contentIPFS, uint64 timestamp, uint32 likesCount, bool isDeleted, bool isNFT))",
   "function likePost(uint256 _postId) external",
   "function unlikePost(uint256 _postId) external",
   "function deletePost(uint256 _postId) external",
   "function hasLiked(address _userAddress, uint256 _postId) external view returns (bool)",
-  "function getRecentPosts(uint256 _offset, uint256 _limit) external view returns (tuple(address author, string contentIPFS, uint64 timestamp, uint32 likesCount, bool isDeleted)[] posts_, uint256[] postIds)",
+  "function getRecentPosts(uint256 _offset, uint256 _limit) external view returns (tuple(address author, string contentIPFS, uint64 timestamp, uint32 likesCount, bool isDeleted, bool isNFT)[] posts_, uint256[] postIds)",
   "function getPostCount() external view returns (uint256)",
+  "function listPostForSale(uint256 _postId, uint256 _price) external",
+  "function cancelListing(uint256 _postId) external",
+  "function buyPost(uint256 _postId) external",
+  "function getListingDetails(uint256 _postId) external view returns (tuple(uint256 postId, address seller, uint256 price, bool isActive, uint64 listedAt))",
+  "function isPostListed(uint256 _postId) external view returns (bool)",
+  "function isPostNFT(uint256 _postId) external view returns (bool)",
+  "function getNFTPostsByUser(address _userAddress) external view returns (uint256[])",
+  "event PostListed(uint256 indexed postId, address indexed seller, uint256 price, uint64 listedAt)",
+  "event PostSold(uint256 indexed postId, address indexed seller, address indexed buyer, uint256 price, uint256 tokenId)",
+  "event ListingCancelled(uint256 indexed postId, address indexed seller)",
+  "event PostOwnershipTransferred(uint256 indexed postId, address indexed previousOwner, address indexed newOwner)"
 ];
 
 // Define CommentManager ABI
@@ -136,6 +105,39 @@ const ModerationManagerABI = [
   "function isModerator(address _user) external view returns (bool)",
 ];
 
+// Define PostNFT ABI
+const PostNFTABI = [
+  "function mintPostNFT(address to, uint256 postId, string memory uri, address originalAuthor) external returns (uint256)",
+  "function getPostData(uint256 tokenId) external view returns (tuple(uint256 postId, address originalAuthor, uint256 mintedAt))",
+  "function isPostMinted(uint256 postId) external view returns (bool)",
+  "function getTokenIdByPostId(uint256 postId) external view returns (uint256)",
+  "function getPostIdByTokenId(uint256 tokenId) external view returns (uint256)",
+  "function getTokensByOwner(address owner) external view returns (uint256[])",
+  "function ownerOf(uint256 tokenId) external view returns (address)",
+  "function approve(address to, uint256 tokenId) external",
+  "function safeTransferFrom(address from, address to, uint256 tokenId) external",
+  "function balanceOf(address owner) external view returns (uint256)",
+  "function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256)",
+  "function tokenURI(uint256 tokenId) external view returns (string memory)"
+];
+
+// Define DailyRewards ABI
+const DailyRewardsABI = [
+  "function claimDailyReward() external returns (bool)",
+  "function canClaim(address user) external view returns (bool)",
+  "function timeUntilNextClaim(address user) external view returns (uint256)",
+  "function getLastClaimTime(address user) external view returns (uint256)",
+  "function getTotalClaimed(address user) external view returns (uint256)",
+  "function getTotalRewardsDistributed() external view returns (uint256)",
+  "function getContractBalance() external view returns (uint256)",
+  "function getRewardDaysRemaining() external view returns (uint256)",
+  "function getClaimStreak(address user) external view returns (uint256)",
+  "function isActive() external view returns (bool)",
+  "function DAILY_REWARD() external view returns (uint256)",
+  "function CLAIM_INTERVAL() external view returns (uint256)",
+  "event RewardClaimed(address indexed user, uint256 amount, uint256 timestamp)"
+];
+
 // Define ABIs for the contracts with minimal interfaces needed for our functions
 const ABIs = {
   SocialMediaManager: [],
@@ -148,10 +150,13 @@ const ABIs = {
     "function balanceOf(address account) external view returns (uint256)",
     "function transfer(address to, uint256 amount) external returns (bool)",
     "function totalSupply() external view returns (uint256)",
+    "function approve(address spender, uint256 amount) external returns (bool)",
+    "function transferFrom(address from, address to, uint256 amount) external returns (bool)",
+    "function allowance(address owner, address spender) external view returns (uint256)"
   ],
   TokenManager: [],
-  PostNFT: [],
-  PostMarketplace: [],
+  PostNFT: PostNFTABI,
+  DailyRewards: DailyRewardsABI,
 };
 
 export interface ContractAddresses {
@@ -164,7 +169,7 @@ export interface ContractAddresses {
   socialToken: string;
   tokenManager: string;
   postNFT: string;
-  postMarketplace: string;
+  dailyRewards: string;
 }
 
 // UserProfile interface for type safety
@@ -225,8 +230,8 @@ export class BlockchainService {
     const contract = this.contracts[contractName];
     if (
       !contract ||
-      !contract.address ||
-      contract.address === "0x0000000000000000000000000000000000000000"
+      !contract.target ||
+      contract.target === "0x0000000000000000000000000000000000000000"
     ) {
       console.error(`Contract ${contractName} is not properly initialized`);
       return false;
@@ -349,6 +354,54 @@ export class BlockchainService {
     }
   }
 
+  // Initialize silently without prompting user (for auto-reconnection)
+  async initSilently(): Promise<boolean> {
+    try {
+      // Check if MetaMask is installed
+      if (typeof window !== "undefined" && window.ethereum) {
+        // Create a Web3Provider
+        this.provider = new ethers.BrowserProvider(window.ethereum);
+
+        // Check if there are already connected accounts without prompting
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
+        
+        if (accounts.length === 0) {
+          // No accounts connected, fail silently
+          return false;
+        }
+
+        // Check blockchain node connection
+        await this.checkNodeConnection();
+
+        // Check and switch to the correct network
+        if (!this.networkChecked) {
+          const networkSwitched = await this.checkAndSwitchNetwork();
+          if (!networkSwitched) {
+            console.error("Failed to switch to the correct network");
+            return false;
+          }
+          this.networkChecked = true;
+        }
+
+        // Get the signer
+        this.signer = await this.provider.getSigner();
+        this.userAddress = await this.signer.getAddress();
+
+        // Initialize contracts
+        this.initContracts();
+
+        this.initialized = true;
+        return true;
+      } else {
+        // MetaMask not installed
+        return false;
+      }
+    } catch (error) {
+      console.error("Error silently initializing blockchain service:", error);
+      return false;
+    }
+  }
+
   // Initialize all contracts
   private initContracts() {
     if (!this.signer) {
@@ -424,11 +477,15 @@ export class BlockchainService {
         this.signer
       );
 
-      this.contracts.postMarketplace = new ethers.Contract(
-        contractAddresses.postMarketplace,
-        ABIs.PostMarketplace,
-        this.signer
-      );
+      if (contractAddresses.dailyRewards && contractAddresses.dailyRewards !== "0x0000000000000000000000000000000000000000") {
+        this.contracts.dailyRewards = new ethers.Contract(
+          contractAddresses.dailyRewards,
+          ABIs.DailyRewards,
+          this.signer
+        );
+      } else {
+        console.warn("DailyRewards contract address is invalid, skipping initialization");
+      }
     } catch (error) {
       console.error("Error initializing contracts:", error);
     }
@@ -437,17 +494,6 @@ export class BlockchainService {
   // Update contract addresses
   updateContractAddresses(addresses: Partial<ContractAddresses>) {
     contractAddresses = { ...contractAddresses, ...addresses };
-    // Store updated addresses in local storage
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(
-          "contract_addresses",
-          JSON.stringify(contractAddresses)
-        );
-      } catch (e) {
-        console.warn("Error saving to localStorage:", e);
-      }
-    }
     if (this.signer) {
       this.initContracts();
     }
@@ -455,15 +501,6 @@ export class BlockchainService {
 
   // Reset contract addresses in case of blockchain reset
   resetContractAddresses() {
-    // Clear local storage
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.removeItem("contract_addresses");
-      } catch (e) {
-        console.warn("Error clearing localStorage:", e);
-      }
-    }
-
     // Force a page reload to make user re-deploy contracts
     if (typeof window !== "undefined") {
       alert(
@@ -1311,79 +1348,6 @@ export class BlockchainService {
     }
   }
 
-  // NFT Methods
-  async mintPostNFT(postId: number): Promise<boolean> {
-    try {
-      const postNFT = this.contracts.postNFT;
-      const tx = await postNFT.mint(postId);
-      await tx.wait();
-      return true;
-    } catch (error) {
-      console.error("Error minting NFT:", error);
-      return false;
-    }
-  }
-
-  async listNFTForSale(tokenId: number, price: string): Promise<boolean> {
-    try {
-      const postMarketplace = this.contracts.postMarketplace;
-      const parsedPrice = ethers.parseUnits(price, 18); // Assuming 18 decimals
-      const tx = await postMarketplace.listForSale(tokenId, parsedPrice);
-      await tx.wait();
-      return true;
-    } catch (error) {
-      console.error("Error listing NFT for sale:", error);
-      return false;
-    }
-  }
-
-  async buyNFT(tokenId: number): Promise<boolean> {
-    try {
-      const postMarketplace = this.contracts.postMarketplace;
-      const listing = await postMarketplace.getListing(tokenId);
-      const tx = await postMarketplace.buyNFT(tokenId, {
-        value: listing.price,
-      });
-      await tx.wait();
-      return true;
-    } catch (error) {
-      console.error("Error buying NFT:", error);
-      return false;
-    }
-  }
-
-  async cancelListing(tokenId: number): Promise<boolean> {
-    try {
-      const postMarketplace = this.contracts.postMarketplace;
-      const tx = await postMarketplace.cancelListing(tokenId);
-      await tx.wait();
-      return true;
-    } catch (error) {
-      console.error("Error canceling NFT listing:", error);
-      return false;
-    }
-  }
-
-  async getOwnedNFTs(): Promise<number[]> {
-    try {
-      const postNFT = this.contracts.postNFT;
-      if (!this.userAddress) return [];
-
-      const balance = await postNFT.balanceOf(this.userAddress);
-      const ownedNFTs = [];
-
-      for (let i = 0; i < balance.toNumber(); i++) {
-        const tokenId = await postNFT.tokenOfOwnerByIndex(this.userAddress, i);
-        ownedNFTs.push(tokenId.toNumber());
-      }
-
-      return ownedNFTs;
-    } catch (error) {
-      console.error("Error fetching owned NFTs:", error);
-      return [];
-    }
-  }
-
   async hasLikedPost(userAddress: string, postId: number): Promise<boolean> {
     try {
       const postManager = this.contracts.postManager;
@@ -1533,6 +1497,461 @@ export class BlockchainService {
     } catch (error) {
       console.error("Error fetching user comments:", error);
       return { comments: [], commentIds: [] };
+    }
+  }
+
+  // NFT Methods
+  async mintPostNFT(postId: number): Promise<boolean> {
+    try {
+      const postNFT = this.contracts.postNFT;
+      if (!this.userAddress) return false;
+      
+      // Get post details to get the content URI
+      const post = await this.getPost(postId);
+      if (!post) return false;
+      
+      const tx = await postNFT.mintPostNFT(
+        this.userAddress, // to
+        postId, // postId
+        post.contentIPFS, // uri
+        post.author // originalAuthor
+      );
+      await tx.wait();
+      return true;
+    } catch (error) {
+      console.error("Error minting NFT:", error);
+      return false;
+    }
+  }
+
+  async listPostForSale(postId: number, price: string): Promise<boolean> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return false;
+      }
+
+      const postManager = this.contracts.postManager;
+      const parsedPrice = ethers.parseUnits(price, 18); // Assuming 18 decimals
+      const tx = await postManager.listPostForSale(postId, parsedPrice);
+      await tx.wait();
+      return true;
+    } catch (error) {
+      console.error("Error listing post for sale:", error);
+      return false;
+    }
+  }
+
+  async cancelListing(postId: number): Promise<boolean> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return false;
+      }
+
+      const postManager = this.contracts.postManager;
+      const tx = await postManager.cancelListing(postId);
+      await tx.wait();
+      return true;
+    } catch (error) {
+      console.error("Error canceling listing:", error);
+      return false;
+    }
+  }
+
+  async buyPost(postId: number): Promise<boolean> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return false;
+      }
+
+      const postManager = this.contracts.postManager;
+      const socialToken = this.contracts.socialToken;
+      
+      if (!socialToken) {
+        console.error("SocialToken contract not initialized");
+        return false;
+      }
+      
+      // Get listing details to check price
+      const listing = await postManager.getListingDetails(postId);
+      
+      if (!listing.isActive) {
+        throw new Error("Post is not listed for sale");
+      }
+      
+      const listingPrice = listing.price;
+      
+      // Check if user has enough tokens
+      if (this.userAddress) {
+        const userBalance = await socialToken.balanceOf(this.userAddress);
+        if (userBalance < listingPrice) {
+          throw new Error("Insufficient token balance to buy this post");
+        }
+        
+        // Check current allowance
+        const currentAllowance = await socialToken.allowance(this.userAddress, postManager.target);
+        
+        // If allowance is insufficient, approve the required amount
+        if (currentAllowance < listingPrice) {
+          console.log("Approving token transfer...");
+          const approveTx = await socialToken.approve(postManager.target, listingPrice);
+          await approveTx.wait();
+          console.log("Token approval successful");
+        }
+      }
+      
+      // Buy the post
+      console.log("Buying post...");
+      const tx = await postManager.buyPost(postId);
+      await tx.wait();
+      console.log("Post purchase successful");
+      return true;
+    } catch (error) {
+      console.error("Error buying post:", error);
+      throw error; // Re-throw so the UI can show the specific error message
+    }
+  }
+
+  async isPostListed(postId: number): Promise<boolean> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return false;
+      }
+
+      const postManager = this.contracts.postManager;
+      return await postManager.isPostListed(postId);
+    } catch (error) {
+      console.error("Error checking if post is listed:", error);
+      return false;
+    }
+  }
+
+  async getListingDetails(postId: number): Promise<any> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return null;
+      }
+
+      const postManager = this.contracts.postManager;
+      const listing = await postManager.getListingDetails(postId);
+      
+      return {
+        postId: typeof listing.postId === "object" ? listing.postId.toNumber() : Number(listing.postId),
+        seller: listing.seller,
+        price: listing.price.toString(),
+        isActive: listing.isActive,
+        listedAt: typeof listing.listedAt === "object" ? listing.listedAt.toNumber() : Number(listing.listedAt)
+      };
+    } catch (error) {
+      console.error("Error getting listing details:", error);
+      return null;
+    }
+  }
+
+  async isPostNFT(postId: number): Promise<boolean> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return false;
+      }
+
+      const postManager = this.contracts.postManager;
+      return await postManager.isPostNFT(postId);
+    } catch (error) {
+      console.error("Error checking if post is NFT:", error);
+      return false;
+    }
+  }
+
+  async getNFTPostsByUser(address: string): Promise<number[]> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return [];
+      }
+
+      const postManager = this.contracts.postManager;
+      const postIds = await postManager.getNFTPostsByUser(address);
+      
+      return postIds.map((id: any) => {
+        // Handle BigInt values (which don't have toNumber method)
+        if (typeof id === "bigint") {
+          return Number(id);
+        }
+        // Handle ethers.js BigNumber which has toNumber method
+        else if (typeof id.toNumber === "function") {
+          return id.toNumber();
+        }
+        // Fallback for other numeric types
+        else {
+          return Number(id);
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching NFT posts:", error);
+      return [];
+    }
+  }
+
+  async approveNFTTransfer(tokenId: number, spender: string): Promise<boolean> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return false;
+      }
+
+      const postNFT = this.contracts.postNFT;
+      const tx = await postNFT.approve(spender, tokenId);
+      await tx.wait();
+      return true;
+    } catch (error) {
+      console.error("Error approving NFT transfer:", error);
+      return false;
+    }
+  }
+
+  async getPostNFTData(tokenId: number): Promise<any> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return null;
+      }
+
+      const postNFT = this.contracts.postNFT;
+      const data = await postNFT.getPostData(tokenId);
+      
+      return {
+        postId: typeof data.postId === "object" ? data.postId.toNumber() : Number(data.postId),
+        originalAuthor: data.originalAuthor,
+        mintedAt: typeof data.mintedAt === "object" ? data.mintedAt.toNumber() : Number(data.mintedAt)
+      };
+    } catch (error) {
+      console.error("Error getting NFT data:", error);
+      return null;
+    }
+  }
+
+  // Get original author of a post (for NFT posts)
+  async getOriginalAuthor(postId: number): Promise<string | null> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return null;
+      }
+
+      // Check if post is NFT
+      const isNFT = await this.isPostNFT(postId);
+      if (!isNFT) {
+        return null; // Not an NFT, use regular post author
+      }
+
+      // Get token ID for this post
+      const postNFT = this.contracts.postNFT;
+      const tokenId = await postNFT.getTokenIdByPostId(postId);
+      
+      // Get NFT data to get original author
+      const nftData = await postNFT.getPostData(tokenId);
+      return nftData.originalAuthor;
+    } catch (error) {
+      console.error("Error getting original author:", error);
+      return null;
+    }
+  }
+
+  async getTokenIdByPostId(postId: number): Promise<number | null> {
+    try {
+      if (!this.isInitialized()) {
+        console.error("Blockchain service not initialized");
+        return null;
+      }
+
+      const postNFT = this.contracts.postNFT;
+      const tokenId = await postNFT.getTokenIdByPostId(postId);
+      
+      return typeof tokenId === "object" ? tokenId.toNumber() : Number(tokenId);
+    } catch (error) {
+      console.error("Error getting token ID for post:", error);
+      return null;
+    }
+  }
+
+  async getOwnedNFTs(): Promise<number[]> {
+    try {
+      const postNFT = this.contracts.postNFT;
+      if (!this.userAddress) return [];
+
+      const balance = await postNFT.balanceOf(this.userAddress);
+      const ownedNFTs = [];
+
+      for (let i = 0; i < balance.toNumber(); i++) {
+        const tokenId = await postNFT.tokenOfOwnerByIndex(this.userAddress, i);
+        ownedNFTs.push(tokenId.toNumber());
+      }
+
+      return ownedNFTs;
+    } catch (error) {
+      console.error("Error fetching owned NFTs:", error);
+      return [];
+    }
+  }
+
+  // Daily Rewards Methods
+  async claimDailyReward(): Promise<boolean> {
+    try {
+      const dailyRewards = this.contracts.dailyRewards;
+      if (!dailyRewards) {
+        console.error("DailyRewards contract not initialized");
+        return false;
+      }
+
+      const tx = await dailyRewards.claimDailyReward();
+      await tx.wait();
+      return true;
+    } catch (error) {
+      console.error("Error claiming daily reward:", error);
+      return false;
+    }
+  }
+
+  async canClaimDailyReward(userAddress?: string): Promise<boolean> {
+    try {
+      const dailyRewards = this.contracts.dailyRewards;
+      if (!dailyRewards) {
+        console.error("DailyRewards contract not initialized");
+        return false;
+      }
+
+      const address = userAddress || this.userAddress;
+      if (!address) return false;
+
+      return await dailyRewards.canClaim(address);
+    } catch (error) {
+      console.error("Error checking if can claim daily reward:", error);
+      return false;
+    }
+  }
+
+  async getTimeUntilNextClaim(userAddress?: string): Promise<number> {
+    try {
+      const dailyRewards = this.contracts.dailyRewards;
+      if (!dailyRewards) {
+        console.error("DailyRewards contract not initialized");
+        return 0;
+      }
+
+      const address = userAddress || this.userAddress;
+      if (!address) return 0;
+
+      const timeLeft = await dailyRewards.timeUntilNextClaim(address);
+      return typeof timeLeft === "object" ? timeLeft.toNumber() : Number(timeLeft);
+    } catch (error) {
+      console.error("Error getting time until next claim:", error);
+      return 0;
+    }
+  }
+
+  async getTotalClaimedRewards(userAddress?: string): Promise<string> {
+    try {
+      const dailyRewards = this.contracts.dailyRewards;
+      if (!dailyRewards) {
+        console.error("DailyRewards contract not initialized");
+        return "0";
+      }
+
+      const address = userAddress || this.userAddress;
+      if (!address) return "0";
+
+      const totalClaimed = await dailyRewards.getTotalClaimed(address);
+      return ethers.formatUnits(totalClaimed, 18);
+    } catch (error) {
+      console.error("Error getting total claimed rewards:", error);
+      return "0";
+    }
+  }
+
+  async getClaimStreak(userAddress?: string): Promise<number> {
+    try {
+      const dailyRewards = this.contracts.dailyRewards;
+      if (!dailyRewards) {
+        console.error("DailyRewards contract not initialized");
+        return 0;
+      }
+
+      const address = userAddress || this.userAddress;
+      if (!address) return 0;
+
+      const streak = await dailyRewards.getClaimStreak(address);
+      return typeof streak === "object" ? streak.toNumber() : Number(streak);
+    } catch (error) {
+      console.error("Error getting claim streak:", error);
+      return 0;
+    }
+  }
+
+  async getDailyRewardAmount(): Promise<string> {
+    try {
+      const dailyRewards = this.contracts.dailyRewards;
+      if (!dailyRewards) {
+        console.error("DailyRewards contract not initialized");
+        return "100"; // Default to 100 tokens
+      }
+
+      const rewardAmount = await dailyRewards.DAILY_REWARD();
+      return ethers.formatUnits(rewardAmount, 18);
+    } catch (error) {
+      console.error("Error getting daily reward amount:", error);
+      return "100"; // Default to 100 tokens
+    }
+  }
+
+  async getRewardsContractBalance(): Promise<string> {
+    try {
+      const dailyRewards = this.contracts.dailyRewards;
+      if (!dailyRewards) {
+        console.error("DailyRewards contract not initialized");
+        return "0";
+      }
+
+      const balance = await dailyRewards.getContractBalance();
+      return ethers.formatUnits(balance, 18);
+    } catch (error) {
+      console.error("Error getting rewards contract balance:", error);
+      return "0";
+    }
+  }
+
+  async getRewardDaysRemaining(): Promise<number> {
+    try {
+      const dailyRewards = this.contracts.dailyRewards;
+      if (!dailyRewards) {
+        console.error("DailyRewards contract not initialized");
+        return 0;
+      }
+
+      const daysRemaining = await dailyRewards.getRewardDaysRemaining();
+      return typeof daysRemaining === "object" ? daysRemaining.toNumber() : Number(daysRemaining);
+    } catch (error) {
+      console.error("Error getting reward days remaining:", error);
+      return 0;
+    }
+  }
+
+  async isRewardsContractActive(): Promise<boolean> {
+    try {
+      const dailyRewards = this.contracts.dailyRewards;
+      if (!dailyRewards) {
+        console.error("DailyRewards contract not initialized");
+        return false;
+      }
+
+      return await dailyRewards.isActive();
+    } catch (error) {
+      console.error("Error checking if rewards contract is active:", error);
+      return false;
     }
   }
 }

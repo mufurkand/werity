@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Sidebar,
   SidebarContent,
@@ -10,7 +12,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Circle, House, Rss, Users } from "lucide-react";
 import Link from "next/link";
-
 const items = [
   {
     title: "Home",
@@ -26,24 +27,6 @@ const items = [
     title: "Followed",
     url: "#",
     icon: Users,
-  },
-];
-
-const recents = [
-  {
-    title: "Furkan1",
-    url: "#",
-    icon: Circle,
-  },
-  {
-    title: "Furkan2",
-    url: "#",
-    icon: Circle,
-  },
-  {
-    title: "Furkan3",
-    url: "#",
-    icon: Circle,
   },
 ];
 
@@ -68,23 +51,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Recents</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {recents.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon fill="white" />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      
       </SidebarContent>
     </Sidebar>
   );
