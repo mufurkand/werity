@@ -6,6 +6,16 @@ export type PostType = {
   likesCount: number;
   isDeleted: boolean;
   isLikedByUser?: boolean;
+  isNFT?: boolean;
+  isListed?: boolean;
+};
+
+export type ListingType = {
+  postId: number;
+  seller: string;
+  price: string;
+  isActive: boolean;
+  listedAt: number;
 };
 
 export type PostMedia = {

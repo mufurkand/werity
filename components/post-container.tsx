@@ -19,7 +19,7 @@ export default function PostContainer({
   userId,
   postId,
 }: PostContainerProps) {
-  const { isConnected, userAddress } = useBlockchain();
+  const { isConnected, userAddress, isInitializing } = useBlockchain();
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState<PostType[]>([]);
   const [loadingPostId, setLoadingPostId] = useState<number | null>(null);
@@ -53,6 +53,9 @@ export default function PostContainer({
       }
 
       let isLikedByUser = false;
+      let isNFT = false;
+      let isListed = false;
+
       if (userAddress) {
         try {
           isLikedByUser = await blockchainService.hasLikedPost(userAddress, id);
@@ -61,10 +64,19 @@ export default function PostContainer({
         }
       }
 
+      try {
+        isNFT = await blockchainService.isPostNFT(id);
+        isListed = await blockchainService.isPostListed(id);
+      } catch (error) {
+        console.error(`Error checking NFT status for post ${id}:`, error);
+      }
+
       const postWithDetails = {
         id,
         ...post,
         isLikedByUser,
+        isNFT,
+        isListed
       };
 
       setPosts([postWithDetails]);
@@ -87,6 +99,9 @@ export default function PostContainer({
             if (!post) return null;
 
             let isLikedByUser = false;
+            let isNFT = false;
+            let isListed = false;
+
             if (userAddress) {
               try {
                 isLikedByUser = await blockchainService.hasLikedPost(
@@ -101,7 +116,14 @@ export default function PostContainer({
               }
             }
 
-            return { id, ...post, isLikedByUser };
+            try {
+              isNFT = await blockchainService.isPostNFT(id);
+              isListed = await blockchainService.isPostListed(id);
+            } catch (error) {
+              console.error(`Error checking NFT status for post ${id}:`, error);
+            }
+
+            return { id, ...post, isLikedByUser, isNFT, isListed };
           } catch (error) {
             console.error(`Error loading post ${id}:`, error);
             return null;
@@ -144,6 +166,9 @@ export default function PostContainer({
           if (!post) return null;
 
           let isLikedByUser = false;
+          let isNFT = false;
+          let isListed = false;
+
           if (userAddress) {
             try {
               isLikedByUser = await blockchainService.hasLikedPost(
@@ -158,10 +183,19 @@ export default function PostContainer({
             }
           }
 
+          try {
+            isNFT = await blockchainService.isPostNFT(postId);
+            isListed = await blockchainService.isPostListed(postId);
+          } catch (error) {
+            console.error(`Error checking NFT status for post ${postId}:`, error);
+          }
+
           return {
             id: postId,
             ...post,
             isLikedByUser,
+            isNFT,
+            isListed
           };
         } catch (error) {
           console.error(`Error loading post ${postId}:`, error);
@@ -291,6 +325,33 @@ export default function PostContainer({
       loadAllPosts(false);
     }
   };
+  // Show loading state while checking for existing session
+  if (isInitializing) {
+    return (
+      <div className="flex flex-col flex-6 gap-8">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="bg-theme-secondary-muted p-6 rounded-lg animate-pulse">
+            <div className="flex gap-3 mb-4">
+              <div className="rounded-full bg-theme-splitter w-12 h-12"></div>
+              <div>
+                <div className="h-4 bg-theme-splitter rounded w-32 mb-2"></div>
+                <div className="h-3 bg-theme-splitter rounded w-24"></div>
+              </div>
+            </div>
+            <div className="space-y-2 mb-4">
+              <div className="h-4 bg-theme-splitter rounded w-full"></div>
+              <div className="h-4 bg-theme-splitter rounded w-3/4"></div>
+            </div>
+            <div className="flex gap-2">
+              <div className="h-8 bg-theme-splitter rounded w-16"></div>
+              <div className="h-8 bg-theme-splitter rounded w-16"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (!isConnected) {
     return (
       <div className="flex-6 p-4 flex justify-center items-center">
@@ -315,6 +376,7 @@ export default function PostContainer({
               post={post}
               onLike={handleLikePost}
               loading={loadingPostId === post.id}
+              isPage={postId !== undefined}
               onDelete={
                 post.author?.toLowerCase() === userAddress?.toLowerCase()
                   ? handleDeletePost

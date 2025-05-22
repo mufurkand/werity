@@ -1,5 +1,5 @@
 import { PostType } from "@/types/posts";
-import { ArrowBigUp, Loader, Trash2, User, Image as ImageIcon, FileVideo } from "lucide-react";
+import { ArrowBigUp, Loader, Trash2, User, Image as ImageIcon, FileVideo, Tag, DollarSign } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { twJoin } from "tailwind-merge";
@@ -7,6 +7,10 @@ import { useState, useEffect } from "react";
 import blockchainService from "@/lib/blockchain/contracts";
 import { getCachedProfile, getCachedProfileImageUrl, requestProfileImage } from "@/lib/utils/profileCache";
 import { parsePostContent, fetchIPFSImage } from "@/lib/utils/ipfsService";
+import { ethers } from "ethers";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { InputDialog } from "@/components/ui/input-dialog";
 
 type PostProps = {
   post: PostType;
@@ -29,6 +33,22 @@ export default function Post({
   const [parsedContent, setParsedContent] = useState<{ text: string, mediaHashes: string[] }>({ text: '', mediaHashes: [] });
   const [mediaUrls, setMediaUrls] = useState<(string | null)[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
+  const [isNFT, setIsNFT] = useState(false);
+  const [isListed, setIsListed] = useState(false);
+  const [listingDetails, setListingDetails] = useState<any>(null);
+  const [listingPrice, setListingPrice] = useState("");
+  const [isListingLoading, setIsListingLoading] = useState(false);
+  const [isBuyingLoading, setIsBuyingLoading] = useState(false);
+  const [ownerUsername, setOwnerUsername] = useState<string | null>(null);
+  const [userBalance, setUserBalance] = useState<string>("0");
+  const [originalAuthor, setOriginalAuthor] = useState<string | null>(null);
+  const [originalAuthorProfile, setOriginalAuthorProfile] = useState<any>(null);
+  
+  // Dialog states
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showListingDialog, setShowListingDialog] = useState(false);
+  const [showCancelListingDialog, setShowCancelListingDialog] = useState(false);
+  const [showBuyDialog, setShowBuyDialog] = useState(false);
 
   // Parse post content to extract text and media references
   useEffect(() => {
@@ -37,6 +57,71 @@ export default function Post({
       setParsedContent(parsed);
     }
   }, [post?.contentIPFS]);
+
+  // Check if post is NFT and if it's listed for sale
+  useEffect(() => {
+    async function checkNFTStatus() {
+      if (!post?.id) return;
+      
+      try {
+        // Check if post is NFT
+        const nftStatus = await blockchainService.isPostNFT(post.id);
+        setIsNFT(nftStatus);
+        
+        // Check if post is listed for sale
+        const listedStatus = await blockchainService.isPostListed(post.id);
+        setIsListed(listedStatus);
+        
+        // If listed, get listing details
+        if (listedStatus) {
+          const details = await blockchainService.getListingDetails(post.id);
+          setListingDetails(details);
+        }
+
+        // If it's an NFT, get the original author and owner info
+        if (nftStatus) {
+          // Get original author for NFTs
+          const originalAuthorAddress = await blockchainService.getOriginalAuthor(post.id);
+          if (originalAuthorAddress) {
+            setOriginalAuthor(originalAuthorAddress);
+            // Get original author's profile
+            const originalProfile = await blockchainService.getUserProfile(originalAuthorAddress);
+            setOriginalAuthorProfile(originalProfile);
+          }
+          
+          // If not listed, get the current owner's username (for display in owner badge)
+          if (!listedStatus) {
+            const ownerProfile = await blockchainService.getUserProfile(post.author);
+            if (ownerProfile) {
+              setOwnerUsername(ownerProfile.username);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error checking NFT status:", error);
+        toast.error("Failed to check NFT status");
+      }
+    }
+    
+    checkNFTStatus();
+  }, [post?.id, post?.author]);
+
+  // Load user's token balance
+  useEffect(() => {
+    async function loadUserBalance() {
+      const userAddress = blockchainService.getUserAddress();
+      if (userAddress) {
+        try {
+          const balance = await blockchainService.getBalance(userAddress);
+          setUserBalance(balance);
+        } catch (error) {
+          console.error("Error loading user balance:", error);
+        }
+      }
+    }
+    
+    loadUserBalance();
+  }, []);
 
   // Load media from IPFS
   useEffect(() => {
@@ -52,6 +137,7 @@ export default function Post({
           urls.push(url);
         } catch (error) {
           console.warn(`Failed to load media for hash ${hash}:`, error);
+          toast.error(`Failed to load media`);
           urls.push(null);
         }
       }
@@ -75,20 +161,25 @@ export default function Post({
     async function fetchProfile() {
       if (!post?.author) return;
       
+      // Determine which author to show (original for NFTs, regular for non-NFTs)
+      const displayAuthor = originalAuthor || post.author;
+      const displayProfile = originalAuthorProfile || authorProfile;
+      
       try {
-        const profile = await getCachedProfile(post.author, () => {
-          return blockchainService.getUserProfile(post.author);
+        const profile = await getCachedProfile(displayAuthor, () => {
+          return blockchainService.getUserProfile(displayAuthor);
         });
         
         setAuthorProfile(profile);
         
         // Get image URL from cache or trigger fetch if needed
         if (profile?.profilePhotoIPFS) {
-          await requestProfileImage(post.author, profile.profilePhotoIPFS);
-          setProfileImageUrl(getCachedProfileImageUrl(post.author));
+          await requestProfileImage(displayAuthor, profile.profilePhotoIPFS);
+          setProfileImageUrl(getCachedProfileImageUrl(displayAuthor));
         }
       } catch (error) {
         console.error("Error fetching author profile:", error);
+        toast.error("Failed to fetch author profile");
       }
     }
     
@@ -96,8 +187,9 @@ export default function Post({
     
     // Set up periodic check for image URL
     const checkImageInterval = setInterval(() => {
-      if (post?.author) {
-        const cachedImageUrl = getCachedProfileImageUrl(post.author);
+      const displayAuthor = originalAuthor || post?.author;
+      if (displayAuthor) {
+        const cachedImageUrl = getCachedProfileImageUrl(displayAuthor);
         if (cachedImageUrl && cachedImageUrl !== profileImageUrl) {
           setProfileImageUrl(cachedImageUrl);
         }
@@ -105,7 +197,7 @@ export default function Post({
     }, 500);
     
     return () => clearInterval(checkImageInterval);
-  }, [post?.author, profileImageUrl]);
+  }, [post?.author, originalAuthor, originalAuthorProfile, profileImageUrl]);
 
   if (!post) return null;
 
@@ -118,24 +210,108 @@ export default function Post({
   function handleProfileClick(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/profile/${post.author}`);
+    const displayAuthor = originalAuthor || post.author;
+    router.push(`/profile/${displayAuthor}`);
   }
 
   function handleDeleteClick(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (
-      onDelete &&
-      window.confirm(
-        "Are you sure you want to delete this post? This action cannot be undone."
-      )
-    ) {
+    setShowDeleteDialog(true);
+  }
+
+  function handleConfirmDelete() {
+    if (onDelete) {
       onDelete(post.id);
+      toast.success("Post deleted successfully");
+    }
+  }
+
+  async function handleListForSale(price: string) {
+    if (!price || parseFloat(price) <= 0) {
+      toast.error("Please enter a valid price");
+      return;
+    }
+    
+    setIsListingLoading(true);
+    try {
+      toast.loading("Listing post for sale...");
+      const success = await blockchainService.listPostForSale(post.id, price);
+      if (success) {
+        setIsListed(true);
+        // Refresh listing details
+        const details = await blockchainService.getListingDetails(post.id);
+        setListingDetails(details);
+        toast.dismiss();
+        toast.success("Post listed for sale successfully");
+      } else {
+        toast.dismiss();
+        toast.error("Failed to list post for sale");
+      }
+    } catch (error) {
+      console.error("Error listing post for sale:", error);
+      toast.dismiss();
+      toast.error("Error listing post for sale");
+    } finally {
+      setIsListingLoading(false);
+    }
+  }
+
+  async function handleCancelListing() {
+    setIsListingLoading(true);
+    try {
+      toast.loading("Cancelling listing...");
+      const success = await blockchainService.cancelListing(post.id);
+      if (success) {
+        setIsListed(false);
+        setListingDetails(null);
+        toast.dismiss();
+        toast.success("Listing cancelled successfully");
+      } else {
+        toast.dismiss();
+        toast.error("Failed to cancel listing");
+      }
+    } catch (error) {
+      console.error("Error canceling listing:", error);
+      toast.dismiss();
+      toast.error("Error canceling listing");
+    } finally {
+      setIsListingLoading(false);
+    }
+  }
+
+  async function handleBuyPost() {
+    setIsBuyingLoading(true);
+    try {
+      toast.loading("Processing purchase...");
+      await blockchainService.buyPost(post.id);
+      toast.dismiss();
+      toast.success("Successfully purchased post!");
+      // Refresh the page to show updated ownership
+      window.location.reload();
+    } catch (error: any) {
+      console.error("Error buying post:", error);
+      toast.dismiss();
+      
+      // Show specific error messages
+      if (error.message?.includes("Insufficient token balance")) {
+        toast.error("You don't have enough tokens to buy this post");
+      } else if (error.message?.includes("Post is not listed for sale")) {
+        toast.error("This post is no longer available for sale");
+      } else if (error.message?.includes("Cannot buy your own post")) {
+        toast.error("You cannot buy your own post");
+      } else if (error.message?.includes("User rejected the request")) {
+        toast.error("Transaction was cancelled");
+      } else {
+        toast.error("Failed to buy post. Please try again.");
+      }
+    } finally {
+      setIsBuyingLoading(false);
     }
   }
 
   const content = (
-    <div className={twJoin("flex flex-col gap-4", !isPage && "cursor-pointer")}>
+    <div className={twJoin("flex flex-col gap-4", !isPage ? "cursor-pointer" : "")}>
       <div>
         <div>
           <div className="flex items-center gap-4">
@@ -156,8 +332,8 @@ export default function Post({
                 onClick={handleProfileClick}
                 className="text-left hover:underline"
               >
-                <p>{authorProfile?.username || post.author}</p>
-                <p className="text-theme-primary">@{post.author.substring(0, 6)}...{post.author.substring(post.author.length - 4)}</p>
+                <p>{authorProfile?.username || (originalAuthor || post.author)}</p>
+                <p className="text-theme-primary">@{(originalAuthor || post.author).substring(0, 6)}...{(originalAuthor || post.author).substring((originalAuthor || post.author).length - 4)}</p>
               </button>
             </div>
             {onDelete && !post.isDeleted && (
@@ -177,10 +353,10 @@ export default function Post({
       </div>
       <div>
         {/* Post text content */}
-        {post.isDeleted ? (
-          <span className="italic text-theme-primary">
-            This post has been deleted
-          </span>
+          {post.isDeleted ? (
+            <span className="italic text-theme-primary">
+              This post has been deleted
+            </span>
         ) : (
           <p className="mb-3">{parsedContent.text}</p>
         )}
@@ -222,7 +398,7 @@ export default function Post({
                   <div className="w-full h-full bg-theme-splitter flex items-center justify-center">
                     <ImageIcon size={32} className="text-theme-primary" />
                   </div>
-                )}
+          )}
               </div>
             ))}
           </div>
@@ -247,14 +423,149 @@ export default function Post({
             )}
             <p>{post.likesCount}</p>
           </button>
-          <div className="p-1 px-2 rounded-full bg-theme-primary-muted">
-            <p>7$</p>
-          </div>
-        </div>{" "}
+          
+          {/* NFT Badge and Price/Owner Badge */}
+          {isNFT && (
+            <div className="flex items-center gap-1">
+              <div className="p-1 px-2 rounded-full bg-theme-secondary flex items-center gap-1">
+                <Tag size={14} className="text-theme-accent" />
+                <span className="text-sm">NFT</span>
+              </div>
+            </div>
+          )}
+          
+          {isListed && listingDetails && (
+            <div 
+              className="p-1 px-2 rounded-full bg-theme-accent text-white flex items-center gap-1 cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (isPage) {
+                  setShowBuyDialog(true);
+                } else {
+                  router.push(`/post/${post.id}`);
+                }
+              }}
+              title={`Listed for ${ethers.formatEther(listingDetails.price)} tokens`}
+            >
+              <DollarSign size={14} />
+              <span className="text-sm">{ethers.formatEther(listingDetails.price)} SOCIAL</span>
+            </div>
+          )}
+          
+          {isNFT && !isListed && ownerUsername && originalAuthor && post.author.toLowerCase() !== originalAuthor.toLowerCase() && (
+            <div className="p-1 px-2 rounded-full bg-theme-secondary flex items-center gap-1" title={`Current owner: ${ownerUsername}`}>
+              <User size={14} className="text-theme-accent" />
+              <span className="text-sm">Owned by {ownerUsername}</span>
+            </div>
+          )}
+        </div>
         <p className="text-theme-primary">
           {new Date(post.timestamp * 1000).toLocaleString()}
         </p>
       </div>
+
+      {/* NFT and Listing UI - Only show on post page */}
+      {!post.isDeleted && isPage && (
+        <div className="flex flex-col gap-2 mt-2">
+          {/* Listing Status */}
+          {isListed && listingDetails && (
+            <div className="border border-theme-accent rounded-md p-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <DollarSign size={16} className="text-theme-accent" />
+                  <span>Listed for sale: {ethers.formatEther(listingDetails.price)} tokens</span>
+                </div>
+                
+                {/* If current user is the seller, show cancel button */}
+                {blockchainService.getUserAddress()?.toLowerCase() === listingDetails.seller?.toLowerCase() ? (
+                  <button
+                    onClick={() => setShowCancelListingDialog(true)}
+                    className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"
+                    disabled={isListingLoading}
+                  >
+                    {isListingLoading ? <Loader className="animate-spin" size={16} /> : "Cancel Listing"}
+                  </button>
+                ) : (
+                  /* Otherwise show buy button */
+                  <button
+                    onClick={() => setShowBuyDialog(true)}
+                    className="bg-theme-accent text-white px-3 py-1 rounded-md hover:bg-theme-accent-hover"
+                    disabled={isBuyingLoading}
+                  >
+                    {isBuyingLoading ? <Loader className="animate-spin" size={16} /> : "Buy Now"}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* List for Sale Button (only shown to post owner if not already listed) */}
+          {!isListed && 
+           blockchainService.getUserAddress()?.toLowerCase() === post.author?.toLowerCase() && (
+            <button
+              onClick={() => setShowListingDialog(true)}
+              className="bg-theme-secondary text-theme-text px-3 py-2 rounded-md hover:bg-theme-secondary-hover"
+            >
+              List for Sale
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Post"
+        description="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        destructive={true}
+      />
+
+      {/* List For Sale Dialog */}
+      <InputDialog
+        open={showListingDialog}
+        onOpenChange={setShowListingDialog}
+        title="List Post for Sale"
+        description="Enter the price in tokens to list this post for sale."
+        label="Price (in tokens)"
+        type="number"
+        min="0.01"
+        step="0.01"
+        defaultValue={listingPrice}
+        placeholder="Enter price"
+        confirmText="List for Sale"
+        onConfirm={handleListForSale}
+      />
+
+      {/* Cancel Listing Dialog */}
+      <ConfirmDialog
+        open={showCancelListingDialog}
+        onOpenChange={setShowCancelListingDialog}
+        title="Cancel Listing"
+        description="Are you sure you want to cancel this listing?"
+        confirmText="Cancel Listing"
+        cancelText="Keep Listed"
+        onConfirm={handleCancelListing}
+      />
+
+      {/* Buy Post Dialog */}
+      <ConfirmDialog
+        open={showBuyDialog}
+        onOpenChange={setShowBuyDialog}
+        title="Buy Post"
+        description={
+          listingDetails ? 
+          `Purchase this post for ${ethers.formatEther(listingDetails.price)} SOCIAL tokens?\n\nYour balance: ${parseFloat(userBalance).toFixed(2)} SOCIAL\n\nThis will mint the post as an NFT and transfer ownership to you.` :
+          "Loading post details..."
+        }
+        confirmText="Buy Now"
+        cancelText="Cancel"
+        onConfirm={handleBuyPost}
+      />
     </div>
   );
 
