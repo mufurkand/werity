@@ -8,7 +8,6 @@ import React, {
   ReactNode,
 } from "react";
 import blockchainService, { ContractAddresses, UserProfile } from "./contracts";
-import LandingPage from "@/components/landing-page";
 
 // Add ethereum to window type
 declare global {
@@ -72,7 +71,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       // If skipUserRequest is true, try to connect silently without requesting accounts
-      const result = skipUserRequest 
+      const result = skipUserRequest
         ? await blockchainService.initSilently()
         : await blockchainService.init();
 
@@ -158,12 +157,14 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
     const tryAutoReconnect = async () => {
       try {
         const { connected } = getSavedConnectionState();
-        
+
         if (connected) {
           console.log("Attempting auto-reconnection...");
           const success = await connect(true); // Silent connection
           if (!success) {
-            console.log("Auto-reconnection failed, user needs to connect manually");
+            console.log(
+              "Auto-reconnection failed, user needs to connect manually"
+            );
             saveConnectionState(false, null);
           } else {
             console.log("Auto-reconnection successful");
@@ -242,7 +243,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
 
   return (
     <BlockchainContext.Provider value={value}>
-      {isConnected ? children : <LandingPage />}
+      {children}
     </BlockchainContext.Provider>
   );
 }
