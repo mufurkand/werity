@@ -1,3 +1,7 @@
+# Werity
+
+![werity](https://github.com/user-attachments/assets/e94970de-4fa4-41cd-b474-c70b0783072d)
+
 ## Features
 
 ### Implemented
