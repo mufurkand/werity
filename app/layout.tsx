@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Decentralized Social Media",
+  title: "Werity",
   description: "A decentralized social media platform",
 };
 
